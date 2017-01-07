@@ -1,0 +1,7 @@
+name: PlayerParticles
+api: [3.0.0-ALPHA1, 3.0.0-ALPHA2]
+version: x.x.x-inDev
+load: POSTWORLD
+main: robske_110\PlayerParticles\PlayerParticles
+author: robske_110
+website: https://github.com/robske110/PlayerParticles
