@@ -15,6 +15,9 @@ class Model{
 	private $model;
 	private $centerMode;
 	private $modelType = "back";
+	private $spacing = 0.2;
+	
+	private $strlenMap = [];
 
 	public function __construct(PlayerParticles $main, array $data, $name = null){
 		if($name !== null && !is_string($name)){
@@ -47,15 +50,27 @@ class Model{
 		}
 		if($this->centerMode == self::CENTER_STATIC){
 			foreach($this->model as $key => $model){
-				$this->model[$key] = strlen($this->model[$key]).$this->model[$key];
+				$this->strlenMap[$key] = strlen($this->model[$key]);
 			}
 		}
 		if(isset($data['modeltype'])){
 			if(is_string($data['modeltype'])){
 				$this->modelType = $data['modeltype'];
 			}else{
-				Utils::notice("Model '".$name."': Key modeltype exists, but is not string, ignoring!");
+				Utils::notice("Model '".$name."': Key 'modeltype' exists, but is not string, ignoring!");
 			}
+		}else{
+			Utils::debug("Model '".$name."': Key 'modeltype' does not exist, using default.");
+		}
+		
+		if(isset($data['spacing'])){
+			if(is_int($data['modeltype'])){
+				$this->spacing = $data['spacing'];
+			}else{
+				Utils::notice("Model '".$name."': Key 'spacing' exists, but is not int, ignoring!");
+			}
+		}else{
+			Utils::debug("Model '".$name."': Key 'spacing' does not exist, using default.");
 		}
 	}
     
@@ -76,6 +91,10 @@ class Model{
 		return $this->model;
 	}
 	
+	public function getStrlenMap(): array{
+		return $this->strlenMap;
+	}
+	
 	public function getName(): string{
 		return $this->name;
 	}
@@ -86,6 +105,10 @@ class Model{
 	
 	public function getCenterMode(): int{
 		return $this->centerMode;
+	}
+	
+	public function getSpacing(): int{
+		return $this->spacing;
 	}
 	
 	public function getPerm(): string{
