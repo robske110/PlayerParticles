@@ -22,12 +22,10 @@ class Model{
 	public function __construct(PlayerParticles $main, array $data, $name = null){
 		if($name !== null && !is_string($name)){
 			Utils::critical("Model '".$name."' could not be loaded: Name must be null or string!");
-			$main->unregisterModel($this);
 			return;
 		}
 		if(is_string($msg = self::checkIntegrity($data, $name))){ #recover from invalid model data
 			Utils::critical("Model '".$name."' could not be loaded: ".$msg."!");
-			$main->unregisterModel($this);
 			return;
 		}
 		$this->name = $data['name'];
@@ -35,7 +33,7 @@ class Model{
 		$this->model = explode("\n", $data['model']);
 		switch($data['centermode']){
 			default:
-				Utils::notice("CenterMode '".$data['centermode']."' not known, using default!");
+				Utils::notice("Model '".$name."': CenterMode '".$data['centermode']."' not known, using default!");
 			case "static":
 			case "total":
 			case "all":
@@ -60,7 +58,7 @@ class Model{
 				Utils::notice("Model '".$name."': Key 'modeltype' exists, but is not string, ignoring!");
 			}
 		}else{
-			Utils::debug("Model '".$name."': Key 'modeltype' does not exist, using default.");
+			Utils::notice("Model '".$name."': Key 'modeltype' does not exist, using default.");
 		}
 		
 		if(isset($data['spacing'])){
@@ -75,16 +73,17 @@ class Model{
 	}
     
 	public static function checkIntegrity(array $data, $name){
+		$stringKeys = ['permgroup', 'model', 'centermode', 'name'];
+		foreach($stringKeys as $stringKey){
+			if(!isset($data[$stringKey])) return "Required key '".$stringKey."' not found";
+			if(!is_string($data[$stringKey])) return "Key '".$stringKey."' is not string";
+		}
 		if($name !== null){
 			if($name !== $data['name']){
 				return "Expected '".$name."' got '".$data['name']."' Did you modify the name of an example? Expected name must be the same as name in data, or null";
 			}
 		}
-		$stringKeys = ['permgroup', 'model', 'centermode'];
-		foreach($stringKeys as $stringKey){
-			if(!isset($data[$stringKey])) return "Required key '".$stringKey."' not found";
-			if(!is_string($data[$stringKey])) return "Key '".$stringKey."' is not string";
-		}
+		return true;
 	}
 	
 	public function getModelData(): array{
@@ -122,7 +121,7 @@ class Model{
 	
 	/**DEBUG*/
 	public function __destruct(){
-		echo("GC got Model ".$this->name." !");
+		echo("GC got Model '".$this->name."' !");
 	}
 }
 //Theory is when you know something, but it doesn't work. Practice is when something works, but you don't know why. Programmers combine theory and practice: Nothing works and they don't know why!

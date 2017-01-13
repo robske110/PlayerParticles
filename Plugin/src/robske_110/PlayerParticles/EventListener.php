@@ -21,7 +21,7 @@ class EventListener implements Listener{
 	public function onMove(PlayerMoveEvent $event){
 		$model = $this->main->getModel('Wing');
 		$pos = $event->getPlayer();
-		$this->main->render($pos, $model);
+		#$this->main->render($pos, $model);
 	}
 	
 	public function onJoin(PlayerLoginEvent $event){
