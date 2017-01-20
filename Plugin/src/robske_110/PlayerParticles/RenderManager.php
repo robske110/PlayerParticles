@@ -24,17 +24,18 @@ class RenderManager extends PluginTask{
 	}
     
 	public function onRun($currentTick){
-		$pos = new Location(210, 70, 215, 0, 0, $this->server->getLevelByName("world"));
-		$model = $this->main->getModel('Helix');
-		$this->main->render($pos, $model);
-		/*
-		foreach($this->server->getOnlinePlayers() as $player){
-			$model = $this->main->getModel('Helix');
-			$additionalData = [abs($currentTick % 360 - 360)];
-			echo("CurrRot:".(abs($currentTick % 360 - 360))."\n");
-			$this->main->render($player, $model, $additionalData);
+		foreach($this->main->renderJobs as $renderJob){
+			if($renderJob->isEnabled()){
+				$location = $renderJob->getLocation();
+				$models = $renderJob->getModels();
+				foreach($models as $model){
+					if($model->needsTickRot()){
+						$model->setRuntimeData(Model::DATA_TICK_ROT, abs($currentTick % 360 - 360)); #Inverted 360 degree rotation
+					}
+					$this->main->render($location, $model);
+				}
+			}
 		}
-		*/
 	}
 }
 //Theory is when you know something, but it doesn't work. Practice is when something works, but you don't know why. Programmers combine theory and practice: Nothing works and they don't know why!

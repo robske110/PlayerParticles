@@ -13,7 +13,8 @@ use pocketmine\utils\Config;
 use pocketmine\utils\TextFormat as TF;
 use pocketmine\level\Location;
 
-use robske_110\PlayerParticles\Model;
+use robske_110\PlayerParticles\Model\Model;
+use robske_110\PlayerParticles\Model\Model2DMap;
 use robske_110\PlayerParticles\Listener;
 use robske_110\Utils\Utils;
 use robske_110\Utils\Translator;
@@ -27,6 +28,17 @@ class PlayerParticles extends PluginBase{
 	private $models = [];
 	private $registeredDefaults = [];
 	
+	/**
+	  * You should check this against your version. 
+	  * (This only tracks changes to non @internal stuff)
+	  * If C changes:
+	  * C.x.x Breaking changes, disable your plugin with an error message.
+	  * x.C.x Feature additions, usally not breaking
+	  * x.x.C BugFixes on api related functions, not breaking.
+	  */
+	const API_VERSION = "1.0.0-InDev";
+	
+	/** @internal */
 	const DEG_TO_RAD = M_PI / 180;
 
 	private static $defaultModels = [
@@ -48,8 +60,7 @@ class PlayerParticles extends PluginBase{
 		$this->lookForUserFiles();
 		$this->listener = new EventListener($this);
 		$this->getServer()->getPluginManager()->registerEvents($this->listener, $this);
-		$this->getServer()->getScheduler()->scheduleRepeatingTask(new RenderManager($this), 5);
-		$this->rotForHeart = 0;
+		#$this->getServer()->getScheduler()->scheduleRepeatingTask(new RenderManager($this), 5);
 	}
     
 	public function getModel(string $registeredName): Model{
@@ -115,85 +126,94 @@ class PlayerParticles extends PluginBase{
 		}
 	}
 	
-	public function render(Location $pos, Model $model, array $additionalData = []): bool{
+	public function render(Location $pos, Model $model): bool{
+		set_error_handler(function($errno, $errstr, $errfile, $errline, array $errcontext){
+			Utils::debug(print_r($errcontext, true));
+		    throw new \ErrorException($errstr, 0, $errno, $errfile, $errline);
+		});
 		try{
-			$layout = $model->getModelData();
-			$yaw = $pos->getYaw(); /* 0-360 DEGREES */
-			$yaw -= 45;
-			$sp = $model->getSpacing();
-			$yawRad = ($yaw * -1 * self::DEG_TO_RAD); /* RADIANS - Don't ask me why inverted! */
-		
-			$px = $pos->x;
-			$pz = $pos->z;
+			$px = $pos->getX();
+			$pz = $pos->getZ();
+			$py = $pos->getY();
+			$level = $pos->getLevel();
+			
+			$yOffset = 2;
 			switch($model->getModelType()){
-				case "stdhelix":
+				case "helix":
+					$yOffset = 0;
+					
+					$h = 2;
+					$yi = 0.02;
+					$t = 0.25;
+					$ti = 0.01;
+					$y = $py + $yOffset;
 					$rot = $additionalData[0];
 					$rotRad = $rot * self::DEG_TO_RAD;
 					$cos = cos($rotRad);
 					$sin = sin($rotRad); 
-					for($yaw = 0, $y = $pos->y, $t = 0.5; $y < $pos->y + 2; $yaw += (M_PI * 2) / 20, $y += 1 / 20, $t += 1 / 50){
+					for($yaw = 0, $cy = $y; $cy < $y + $h; $yaw += (M_PI * 2) / 20, $cy += $yi, $t += $ti){
 						$diffx = -sin($yaw) * $t;
 						$diffz = cos($yaw) * $t;
 						$rx = $diffx * $cos + $diffz * $sin;
 						$rz = -$diffx * $sin + $diffz * $cos;
 						$fx = $px + $rx;
 						$fz = $pz + $rz;
-						$particleObject = new GenericParticle(new Vector3($fx, $y, $fz), 7);
-						$pos->getLevel()->addParticle($particleObject);
+						$particleObject = new GenericParticle(new Vector3($fx, $cy, $fz), 7);
+						$level->addParticle($particleObject);
 					}
-					$rot = $this->rotForHeart += 30;
-					if($rot > 360){
-						$this->rotForHeart = 0;
-						$rot = 360;
-					}
-					$rotRad = $rot * self::DEG_TO_RAD;
-					$cos = cos($rotRad);
-					$sin = sin($rotRad); 
+				break;
+				case "headcircle":
+					$y = $py + $yOffset;
+					$ri = 30;
 					$t = 0.6;
-					$y = $pos->y + 2;
-					$yaw = M_PI * 2;
-					$diffx = -sin($yaw) * $t;
-					$diffz = cos($yaw) * $t;
-					$rx = $diffx * $cos + $diffz * $sin;
-					$rz = -$diffx * $sin + $diffz * $cos;
+					
+					$rot = $model->getRuntimeData("rot");
+					if($rot === null){
+						$rot = 0;
+					}
+					$rot += $ri;
+					if($rot > 360){
+						$rot = $ri;
+					}
+					echo("rot::$rot");
+					$model->setRuntimeData("rot", $rot);
+					
+					$rotRad = $rot * self::DEG_TO_RAD;
+					$rx = -sin($rotRad) * $t;
+					$rz = cos($rotRad) * $t;
 					$fx = $px + $rx;
 					$fz = $pz + $rz;
 					$particleObject = new GenericParticle(new Vector3($fx, $y, $fz), 17);
-					$pos->getLevel()->addParticle($particleObject);
-				case "hurricane":
+					$level->addParticle($particleObject);
+				break;
+				case "cone":
+					$t = 1;
+					$s = 5;
 					$d = 10;
-					$t = 5;
-					$s = 0.5;
 					$v = 0.25;
-					$y = $pos->getY();
-					//LOW_END_RADIUS_CALC
-					#def t given::starttopt
-					#def s given::stopendt
-					#def v given::vertres
-					#def d given::ydiff
-					$dcpi = abs($t - $s) / ($d / $v);
-					#res dcpi ret::decreasebyiter
-					//END_L_E_R_C
 					$p = 0.25;
+					$y = $pos->getY();
+					$dcpi = abs($t - $s) / ($d / $v);
 					for($iy = $y + $d; $y <= $iy; $iy -= $v){
 						$t -= $dcpi;
-						//PARTICLES_PER_CIRCLE_CALC
-						#def p give::particlesdiff
 						$ppc = round((2 * M_PI * $t) / $p);
-						#res ppc ret::particlespercircle
-						//END_P_P_C_C
 						for($yaw = 0; $yaw <= M_PI * 2; $yaw += (M_PI * 2) / $ppc){
 							$diffx = -sin($yaw) * $t;
 							$diffz = cos($yaw) * $t;
 							$fx = $px + $diffx;
 							$fz = $pz + $diffz;
 							$particleObject = new GenericParticle(new Vector3($fx, $iy, $fz), 7);
-							$pos->getLevel()->addParticle($particleObject);
+							$level->addParticle($particleObject);
 						}
 					}
 				break;
 				case "back":
-					$y = $pos->getY() + 2;
+					$y = $py + $yOffset;
+					$layout = $model->getModelData();
+					$yaw = $pos->getYaw(); /* 0-360 DEGREES */
+					$yaw -= 45;
+					$sp = $model->getSpacing();
+					$yawRad = ($yaw * -1 * self::DEG_TO_RAD); /* RADIANS - Don't ask me why inverted! */
 					if($model->getCenterMode() == Model::CENTER_STATIC){
 						$amb = max($model->getStrlenMap()) * $sp / 2;
 						$amb += $amb / M_PI; /* Please just don't ask me why! */
@@ -211,12 +231,12 @@ class PlayerParticles extends PluginBase{
 							$sin = sin($yawRad); 
 							$rx = $diffx * $cos + $diffz * $sin;
 							$rz = -$diffx * $sin + $diffz * $cos;
-							$behind = $yaw - 45;
-							$bx = cos($behind * self::DEG_TO_RAD) * $sp;
-							$bz = sin($behind * self::DEG_TO_RAD) * $sp;
-							$right = $yaw + 225;
-							$cx = cos($right * self::DEG_TO_RAD) * $amb;
-							$cz = sin($right * self::DEG_TO_RAD) * $amb;
+							$b = $yaw - 45;
+							$bx = cos($b * self::DEG_TO_RAD) * $sp;
+							$bz = sin($b * self::DEG_TO_RAD) * $sp;
+							$r = $yaw + 225;
+							$cx = cos($r * self::DEG_TO_RAD) * $amb;
+							$cz = sin($r * self::DEG_TO_RAD) * $amb;
 							$fx = $px + $rx + $bx + $cx;
 							$fz = $pz + $rz + $bz + $cz;
 							if($layer[$verticalpos] == "P"){
@@ -233,10 +253,12 @@ class PlayerParticles extends PluginBase{
 				return false;
 				break;
 			}
+			restore_error_handler();
 			return true;
 		}catch(\Throwable $t){
-			Utils::critical("Failed to render Model '".$model->getName()."':");
+			Utils::emergency("Failed to render Model '".$model->getName()."':");
 			$this->getLogger()->logException($t);
+			restore_error_handler();
 			return false;
 		}
 	}
@@ -249,8 +271,42 @@ class PlayerParticles extends PluginBase{
 		return $this->registeredDefaults;
 	}
 	
+	
+	public function createModelFromData(array $data, $name = null): Model{ //Add ?string typehint PHP 7.1
+		if(isset($data['name'])){
+			$rname = $data['name'];
+		}elseif(is_string($name)){
+			$rname = $name;
+			$data['name'] = $name;
+		}else{
+			Utils::critical("Cannot create Model from Data: No name found at all!");
+			$e = new \Exception("ERR_901");
+			Utils::debug($e->getTraceAsString());
+		}
+		if(isset($data['modeltype'])){
+			if(!is_string($data['modeltype'])){
+				Utils::notice("Model '".$this->name."': Key 'modeltype' exists, but is not string, ignoring.");
+				$data['modeltype'] = "back";
+			}
+		}else{
+			Utils::notice("Model '".$rname."': Required key 'modeltype' does not exist, using default.");
+			$data['modeltype'] = "back";
+		}
+		if($name !== null){
+			$rname = $name;
+		}
+		switch($data['modeltype']){
+			case "back":
+				$model = new Model2DMap($this, $data, $rname);
+			break;
+			default:
+				$model = new Model($this, $data, $rname); #will probably crash anyway, but worth a try
+		}
+		return $model;
+	}
+	
 	public function lookForUserFiles(){
-		
+		/** @TODO */
 	}
 	
 	private function initDefaults(){
@@ -261,6 +317,8 @@ class PlayerParticles extends PluginBase{
 				continue;
 			}elseif(is_resource($res)){
 				fclose($res);
+			}else{
+				Utils::debug("This should never happen. ERR_902");
 			}
 			$this->saveResource($fileName);
 
@@ -270,7 +328,7 @@ class PlayerParticles extends PluginBase{
 				$this->getLogger()->logException($t);
 			}
 			if($cfg->check()){
-				if($registerName = $this->registerModel(new Model($this, $cfg->getAll(), $name)) !== ""){
+				if($registerName = $this->registerModel($this->createModelFromData($cfg->getAll(), $name)) !== ""){
 					$this->registeredDefaults[$registerName] = $name;
 				}else{
 					Utils::critical("Failed to register default Model '".$name."'! Did you modify it incorrectly?");

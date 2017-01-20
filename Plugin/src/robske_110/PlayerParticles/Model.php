@@ -1,6 +1,6 @@
 <?php
 
-namespace robske_110\PlayerParticles;
+namespace robske_110\PlayerParticles\Model;
 
 use robske_110\PlayerParticles\PlayerParticles;
 use robske_110\Utils\Utils;
@@ -14,66 +14,40 @@ class Model{
 	private $perm;
 	private $model;
 	private $centerMode;
-	private $modelType = "back";
+	private $modelType = "generic";
 	private $spacing = 0.2;
 	
 	private $strlenMap = [];
+	private $runtimeData = [];
 
-	public function __construct(PlayerParticles $main, array $data, $name = null){
+	public function __construct(PlayerParticles $main, array $data, $name = null, $forcedID = null){
 		if($name !== null && !is_string($name)){
-			Utils::critical("Model '".$name."' could not be loaded: Name must be null or string!");
-			return;
+			Utils::critical("Model '".isset($data['name']) ? $data['name'] : ""."' could not be loaded: Name must be null or string!");
+			return false;
 		}
-		if(is_string($msg = self::checkIntegrity($data, $name))){ #recover from invalid model data
-			Utils::critical("Model '".$name."' could not be loaded: ".$msg."!");
-			return;
+		if(is_string($msg = self::checkIntegrity($data, $name))){ #recover from missing/invalid model data
+			Utils::critical("Model '".isset($data['name']) ? $data['name'] : $name."' could not be loaded: ".$msg."!");
+			return false;
 		}
 		$this->name = $data['name'];
-		$this->perm = $data['permgroup'];
-		$this->model = explode("\n", $data['model']);
-		switch($data['centermode']){
-			default:
-				Utils::notice("Model '".$name."': CenterMode '".$data['centermode']."' not known, using default!");
-			case "static":
-			case "total":
-			case "all":
-			case "max":
-				$this->centerMode = self::CENTER_STATIC;
-			break;
-			case "dynamic":
-			case "invidual":
-			case "each":
-				$this->centerMode = self::CENTER_DYNAMIC;
-			break;
-		}
-		if($this->centerMode == self::CENTER_STATIC){
-			foreach($this->model as $key => $model){
-				$this->strlenMap[$key] = strlen($this->model[$key]);
-			}
-		}
 		if(isset($data['modeltype'])){
 			if(is_string($data['modeltype'])){
+				if($forcedID !== null && ($data['modeltype'] !== $forcedID)){
+					Utils::critical("Model '".$this->name."' could not be loaded: Wrong modeltype for the subclass!");
+					return false;
+				}
 				$this->modelType = $data['modeltype'];
 			}else{
-				Utils::notice("Model '".$name."': Key 'modeltype' exists, but is not string, ignoring!");
+				Utils::notice("Model '".$this->name."': Key 'modeltype' exists, but is not string, ignoring.");
 			}
 		}else{
-			Utils::notice("Model '".$name."': Key 'modeltype' does not exist, using default.");
+			Utils::notice("Model '".$this->name."': Key 'modeltype' does not exist, using default.");
 		}
-		
-		if(isset($data['spacing'])){
-			if(is_int($data['modeltype'])){
-				$this->spacing = $data['spacing'];
-			}else{
-				Utils::notice("Model '".$name."': Key 'spacing' exists, but is not int, ignoring!");
-			}
-		}else{
-			Utils::debug("Model '".$name."': Key 'spacing' does not exist, using default.");
-		}
+		$this->perm = $data['permgroup'];
 	}
     
 	public static function checkIntegrity(array $data, $name){
-		$stringKeys = ['permgroup', 'model', 'centermode', 'name'];
+		$stringKeys = ['permgroup', 'name'];
 		foreach($stringKeys as $stringKey){
 			if(!isset($data[$stringKey])) return "Required key '".$stringKey."' not found";
 			if(!is_string($data[$stringKey])) return "Key '".$stringKey."' is not string";
@@ -86,14 +60,6 @@ class Model{
 		return true;
 	}
 	
-	public function getModelData(): array{
-		return $this->model;
-	}
-	
-	public function getStrlenMap(): array{
-		return $this->strlenMap;
-	}
-	
 	public function getName(): string{
 		return $this->name;
 	}
@@ -102,26 +68,24 @@ class Model{
 		return $this->modelType;
 	}
 	
-	public function getCenterMode(): int{
-		return $this->centerMode;
-	}
-	
-	public function getSpacing(): int{
-		return $this->spacing;
-	}
-	
 	public function getPerm(): string{
 		return $this->perm;
+	}
+	
+	public function getRuntimeData(string $key){
+		if(isset($this->runtimeData[$key])){
+			return $this->runtimeData[$key];
+		}
+		return null;
+	}
+	
+	public function setRuntimeData(string $key, $data){
+		$this->runtimeData[$key] = $data;
 	}
 	
 	/** @TODO */
 	public function canBeUsedByPlayer(Player $player): bool{
 		return true;
-	}
-	
-	/**DEBUG*/
-	public function __destruct(){
-		echo("GC got Model '".$this->name."' !");
 	}
 }
 //Theory is when you know something, but it doesn't work. Practice is when something works, but you don't know why. Programmers combine theory and practice: Nothing works and they don't know why!
