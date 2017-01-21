@@ -2,6 +2,6 @@ name: Helix
 
 model: ""
 centermode: ""
-modeltype: "stdhelix"
+modeltype: "helix"
 
 permgroup: "all"

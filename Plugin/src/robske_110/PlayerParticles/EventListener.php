@@ -19,9 +19,9 @@ class EventListener implements Listener{
 	}
     
 	public function onMove(PlayerMoveEvent $event){
-		$this->main->getRenderJobsFor($event->getPlayer){
+		#foreach($this->main->getRenderJobFor($event->getPlayer)->getModels() as $model){
 			
-		}
+		#}	
 	}
 	
 	public function onJoin(PlayerLoginEvent $event){

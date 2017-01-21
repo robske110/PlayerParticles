@@ -3,11 +3,6 @@
 namespace robske_110\PlayerParticles;
 
 use pocketmine\plugin\PluginBase;
-use pocketmine\command\Command;
-use pocketmine\command\CommandSender;
-use pocketmine\event\player\PlayerLoginEvent;
-use pocketmine\event\player\PlayerChatEvent;
-use pocketmine\event\server\ServerCommandEvent;
 use pocketmine\Player;
 use pocketmine\utils\Config;
 use pocketmine\utils\TextFormat as TF;
@@ -49,31 +44,40 @@ class PlayerParticles extends PluginBase{
 	public function onEnable(){
 		@mkdir($this->getDataFolder());
 		$this->config = new Config($this->getDataFolder() . "config.yml", Config::YAML, []);
-		if($this->config->get("ConfigVersion") != 0){
+		if($this->config->get("ConfigVersion") != 0.1){
 			$this->config->set('lang', 'eng');
+			$this->config->set('modeldatapath', "/models");
 			$this->config->set('debug', true);
-			$this->config->set('ConfigVersion', 0);
+			$this->config->set('ConfigVersion', 0.1);
 		}
 		$this->config->save();
 		Utils::init($this, $this->config->get('debug'), "[PlayerParticles]");
-		$this->initDefaults();
-		$this->lookForUserFiles();
+		$this->initDefaults($this->config->get("modeldatapath")."/defaults");
+		$this->lookForUserFiles($this->getDataFolder().$this->config->get("modeldatapath"));
 		$this->listener = new EventListener($this);
 		$this->getServer()->getPluginManager()->registerEvents($this->listener, $this);
-		#$this->getServer()->getScheduler()->scheduleRepeatingTask(new RenderManager($this), 5);
+		$this->getServer()->getScheduler()->scheduleRepeatingTask(new RenderManager($this), 5);
 	}
     
-	public function getModel(string $registeredName): Model{
-		return $this->models[$registeredName];
+	/**
+      * @param string $registeredName The registeredName of your wanted model
+	  *
+	  * @return Model|null
+	  */
+	public function getModel(string $registeredName): Model{ #PHP7.1 chgto ?Model
+		if(isset($this->models[$registeredName])){
+			return $this->models[$registeredName];
+		}
+		return null;
 	}
 	
 	/**
-	 * @param string $name The name of your searched model(s)
-	 * 
-	 * Note: This function should not be needed!
-	 *
-	 * @return array [$registeredName => $model]
-	 */
+	  * @param string $name The name of your wanted model(s)
+	  * 
+	  * Note: You should not need this function!
+	  *
+	  * @return array [$registeredName => Model]
+	  */
 	public function getModelsByName(string $name): array{
 		$models = [];
 		foreach($this->models as $registeredName => $model){
@@ -87,7 +91,7 @@ class PlayerParticles extends PluginBase{
 	/**
 	  * @param Model $model The model to be registered
 	  * 
-	  * Note: If a model with the same level already exists, it will be saved with a number at
+	  * Note: If a model with the same name already exists, it will be saved with a number at
 	  * the end e.g. Wing1. That name will be returned, so be sure to save that name.
 	  *
 	  * @return string Returns the index name
@@ -102,9 +106,9 @@ class PlayerParticles extends PluginBase{
 			Utils::debug("Model '".$model->getName()."' already exists, incrementing name.");
 			$i = 1;
 			$foundFreeName = false;
-			while($foundFreeName){
+			while(!$foundFreeName){
 				$name = $model->getName().$i;
-				if(!isset($name)){
+				if(!isset($this->models[$name])){
 					$foundFreeName = true;
 				}
 				$i++;
@@ -116,17 +120,28 @@ class PlayerParticles extends PluginBase{
 		return $model->getName();
 	}
 	
-	public function unregisterModel(Model $model, string $registeredName = ""): bool{
-		if($model->getName() == ""){
-			Utils::debug("Attempted to unregister a Model with empty name!");
-			return false;
+	/**
+      * @param string $registeredName The registeredName of the model
+	  *
+	  * @return bool Success
+	  */
+	public function unregisterModel(string $registeredName): bool{
+		if(isset($this->models[$registeredName])){
+			unset($this->models[$registeredName]);
+			return true;
 		}
-		if(isset($this->models[$model->getName()])){
-			unset($this->models[$model->getName()]);
-		}
+		return false;
 	}
 	
-	public function render(Location $pos, Model $model): bool{
+	/**
+	  * Renders $model for $pos
+	  *
+	  * @param Location $pos The location at which particles should be spawned
+	  * @param Model $model The model that should be rendered
+	  *
+	  * @return bool Success
+	  */
+	public function render(Location $pos, Model $model, array $additionalData = []): bool{
 		set_error_handler(function($errno, $errstr, $errfile, $errline, array $errcontext){
 			Utils::debug(print_r($errcontext, true));
 		    throw new \ErrorException($errstr, 0, $errno, $errfile, $errline);
@@ -146,12 +161,13 @@ class PlayerParticles extends PluginBase{
 					$yi = 0.02;
 					$t = 0.25;
 					$ti = 0.01;
+					$res = 20;
 					$y = $py + $yOffset;
 					$rot = $additionalData[0];
 					$rotRad = $rot * self::DEG_TO_RAD;
 					$cos = cos($rotRad);
 					$sin = sin($rotRad); 
-					for($yaw = 0, $cy = $y; $cy < $y + $h; $yaw += (M_PI * 2) / 20, $cy += $yi, $t += $ti){
+					for($yaw = 0, $cy = $y; $cy < $y + $h; $yaw += (M_PI * 2) / $res, $cy += $yi, $t += $ti){
 						$diffx = -sin($yaw) * $t;
 						$diffz = cos($yaw) * $t;
 						$rx = $diffx * $cos + $diffz * $sin;
@@ -297,19 +313,25 @@ class PlayerParticles extends PluginBase{
 		}
 		switch($data['modeltype']){
 			case "back":
-				$model = new Model2DMap($this, $data, $rname);
+				$model = new Model2DMap($data, $rname);
 			break;
 			default:
-				$model = new Model($this, $data, $rname); #will probably crash anyway, but worth a try
+				$model = new Model($data, $rname); #will probably result in an invalid model, worth a try
 		}
 		return $model;
 	}
 	
-	public function lookForUserFiles(){
-		/** @TODO */
+	public function lookForUserFiles(string $path){
+		$rdi = new \RecursiveDirectoryIterator($path);
+		$rii = new \RecursiveIteratorIterator($rdi);
+		$ymlFiles = new \RegexIterator($rii, '/^.+\.yml$/i', \RegexIterator::GET_MATCH);
+		foreach($ymlFiles as $ymlFile){
+			var_dump($ymlFile);
+		}
 	}
 	
-	private function initDefaults(){
+	/** @internal */
+	private function initDefaults(string $path){
 		foreach(self::$defaultModels as $name => $fileName){
 			$res = $this->getResource($fileName);
 			if($res === null){
@@ -321,9 +343,11 @@ class PlayerParticles extends PluginBase{
 				Utils::debug("This should never happen. ERR_902");
 			}
 			$this->saveResource($fileName);
+			@mkdir($this->getDataFolder().$path, 0777, true);
+			rename($this->getDataFolder().$fileName, $this->getDataFolder().$path."/".$fileName);
 
 			try{
-				$cfg = new Config($this->getDataFolder().$fileName, Config::YAML);
+				$cfg = new Config($this->getDataFolder().$path."/".$fileName, Config::YAML);
 			}catch(\Throwable $t){
 				$this->getLogger()->logException($t);
 			}

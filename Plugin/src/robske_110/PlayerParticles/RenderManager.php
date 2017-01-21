@@ -25,10 +25,13 @@ class RenderManager extends PluginTask{
     
 	public function onRun($currentTick){
 		foreach($this->main->renderJobs as $renderJob){
-			if($renderJob->isEnabled()){
+			if($renderJob->isActive()){
 				$location = $renderJob->getLocation();
 				$models = $renderJob->getModels();
 				foreach($models as $model){
+					if(!$model->isActive()){
+						continue;
+					}
 					if($model->needsTickRot()){
 						$model->setRuntimeData(Model::DATA_TICK_ROT, abs($currentTick % 360 - 360)); #Inverted 360 degree rotation
 					}

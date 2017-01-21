@@ -18,8 +18,8 @@ class Model2DMap extends Model{
 	private $strlenMap = [];
 	private $particleMap = [];
 
-	public function __construct(PlayerParticles $main, array $data, $name = null){
-		if(parent::__construct($main, $data, $name, "back") === false){
+	public function __construct(array $data, $name = null){
+		if(parent::__construct($data, $name, $this) === false){
 			Utils::debug("Model '".isset($data['name']) ? $data['name'] : $name."': Exiting out of subclass 2DMapModel");
 			return false;
 		}
@@ -80,12 +80,26 @@ class Model2DMap extends Model{
 		return parent::checkIntegrity($data, $name);
 	}
     
+	public static function getID(): string{
+		return "back";
+	}
+	
 	public function get2DMap(): array{
 		return $this->map;
 	}
 	
 	public function getStrlenMap(): array{
 		return $this->strlenMap;
+	}
+	
+	/** @internal */
+	public function hasParticleType(): bool{
+		return false;
+	}
+	
+	/** @internal */
+	public function needsTickRot(): bool{
+		return false;
 	}
 	
 	public function getCenterMode(): int{
