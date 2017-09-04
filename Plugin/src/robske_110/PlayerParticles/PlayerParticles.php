@@ -10,7 +10,8 @@ use pocketmine\level\Location;
 
 use robske_110\PlayerParticles\Model\Model;
 use robske_110\PlayerParticles\Model\Model2DMap;
-use robske_110\PlayerParticles\Listener;
+use robske_110\PlayerParticles\EventListener;
+use robske_110\PlayerParticles\Render\RenderManager;
 use robske_110\Utils\Utils;
 use robske_110\Utils\Translator;
 
@@ -24,17 +25,15 @@ class PlayerParticles extends PluginBase{
 	private $registeredDefaults = [];
 	
 	/**
-	  * You should check this against your version. 
+	  * You should check this against your version either with your own implementation
+	  * or with @link{$this->isCompatible}
 	  * (This only tracks changes to non @internal stuff)
 	  * If C changes:
-	  * C.x.x Breaking changes, disable your plugin with an error message.
-	  * x.C.x Feature additions, usally not breaking
-	  * x.x.C BugFixes on api related functions, not breaking.
+	  * C.x.x Breaking changes, disable your plugin with an error message or disable any PP API usage.
+	  * x.C.x Feature additions, usually not breaking. (Use this if you require certain new features)
+	  * x.x.C BugFixes on API related functions, not breaking.
 	  */
 	const API_VERSION = "1.0.0-InDev";
-	
-	/** @internal */
-	const DEG_TO_RAD = M_PI / 180;
 
 	private static $defaultModels = [
 		"Wing" => "wing.yml",
@@ -60,11 +59,31 @@ class PlayerParticles extends PluginBase{
 	}
     
 	/**
+	  * For extension plugins to test if they are compatible with the version
+	  * of PP installed.
+	  * 
+	  * @param string $apiVersion The API version your plugin was last tested on.
+	  *
+	  * @return bool Indicates if your plugin is compatible.
+	  */
+	public function isCompatible(string $apiVersion): bool{
+		$extensionApiVersion = explode(".", $apiVersion);
+		$myApiVersion = explode(".", self::API_VERSION);
+		if($extensionApiVersion[0] !== $myApiVersion[0]){
+			return false;
+		}
+		if($extensionApiVersion[1] > $myApiVersion[1]){
+			return false;
+		}
+		return true;
+	}
+	
+	/**
       * @param string $registeredName The registeredName of your wanted model
 	  *
 	  * @return Model|null
 	  */
-	public function getModel(string $registeredName): Model{ #PHP7.1 chgto ?Model
+	public function getModel(string $registeredName): ?Model{
 		if(isset($this->models[$registeredName])){
 			return $this->models[$registeredName];
 		}
@@ -74,7 +93,8 @@ class PlayerParticles extends PluginBase{
 	/**
 	  * @param string $name The name of your wanted model(s)
 	  * 
-	  * Note: You should not need this function!
+	  * Note: You should always use different ways to get the model because this is
+	  * quite resource intensive and can return multiple results.
 	  *
 	  * @return array [$registeredName => Model]
 	  */
@@ -261,8 +281,8 @@ class PlayerParticles extends PluginBase{
 							}
 							$diffx += $sp;
 							$diffz += $sp;
+						}
 					}
-				}
 				break;
 				default:
 					Utils::critical("Failed to render Model '".$model->getName()."': Unknown modeltype '".$model->getModelType()."'.");
@@ -286,7 +306,6 @@ class PlayerParticles extends PluginBase{
 	public function getDefaultModels(): array{
 		return $this->registeredDefaults;
 	}
-	
 	
 	public function createModelFromData(array $data, $name = null): Model{ //Add ?string typehint PHP 7.1
 		if(isset($data['name'])){
@@ -316,7 +335,7 @@ class PlayerParticles extends PluginBase{
 				$model = new Model2DMap($data, $rname);
 			break;
 			default:
-				$model = new Model($data, $rname); #will probably result in an invalid model, worth a try
+				$model = new Model($data, $rname); #will probably result in an invalid model, worth a try though
 		}
 		return $model;
 	}
@@ -340,7 +359,8 @@ class PlayerParticles extends PluginBase{
 			}elseif(is_resource($res)){
 				fclose($res);
 			}else{
-				Utils::debug("This should never happen. ERR_902");
+				Utils::critical("PluginBase->getResource returned no resource and not null. Aborting loading '".$name."'!");
+				continue;
 			}
 			$this->saveResource($fileName);
 			@mkdir($this->getDataFolder().$path, 0777, true);

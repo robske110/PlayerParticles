@@ -1,6 +1,6 @@
 name: PlayerParticles
-api: [3.0.0-ALPHA1, 3.0.0-ALPHA2]
-version: x.x.x-inDev
+api: [3.0.0-ALPHA7]
+version: x.x.x-InDev
 load: POSTWORLD
 main: robske_110\PlayerParticles\PlayerParticles
 author: robske_110

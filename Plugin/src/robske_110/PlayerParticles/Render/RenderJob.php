@@ -1,6 +1,6 @@
 <?php
 
-namespace robske_110\PlayerParticles\Model;
+namespace robske_110\PlayerParticles\Render;
 
 use robske_110\PlayerParticles\PlayerParticles;
 use robske_110\Utils\Utils;

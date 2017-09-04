@@ -67,7 +67,7 @@ class Model{
 							$finalParticle[0] = $inputa[0];
 						}else{
 							$finalParticle[0] = self::getParticleIDbyName($inputa[0]);
-							Utils::notice("Model '".$this->name."': Attribute 'particle': Section1: The Particle with the name ".$inputa[0]." could not be found! Please use the Particle constant names.");
+							Utils::notice("Model '".$this->name."': Attribute 'particle': Section1: The Particle with the name ".$inputa[0]." could not be found! Please use the Particle constant names which are declared here: https://github.com/pmmp/PocketMine-MP/blob/master/src/pocketmine/level/particle/Particle.php");
 						}
 						if(is_string($inputa[1])){
 							if(strpos($inputa[1], ",") !== false){

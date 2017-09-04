@@ -1,17 +1,10 @@
 <?php
 
-namespace robske_110\PlayerParticles;
+namespace robske_110\PlayerParticles\Render;
 
 use pocketmine\scheduler\PluginTask;
 
-use robske_110\PlayerParticles\Model;
-use robske_110\PlayerParticles\Listener;
-use robske_110\Utils\Utils;
-use robske_110\Utils\Translator;
-use pocketmine\level\Location;
-
-use pocketmine\level\particle\GenericParticle;
-use pocketmine\math\Vector3;
+use robske_110\PlayerParticles\PlayerParticles;
 
 class RenderManager extends PluginTask{
 	private $main;
