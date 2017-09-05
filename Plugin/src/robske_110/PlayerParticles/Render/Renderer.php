@@ -45,13 +45,12 @@ class Renderer{
 			$yOffset = 2;
 			switch($model->getModelType()){
 				case "helix":
-					$yOffset = 0;
-					
 					$h = 2; //height
 					$yi = 0.02; //height increase per particle
 					$t = 0.25; //lower radius
 					$ti = 0.01; //radius increase per particle
 					$res = 25; //particles per circle
+					$yOffset = 0;
 					$y = $py + $yOffset;
 					$rot = $model->getRuntimeData("rot");
 					$rotRad = $rot * self::DEG_TO_RAD;
@@ -69,9 +68,9 @@ class Renderer{
 					}
 				break;
 				case "headcircle":
-					$y = $py + $yOffset;
 					$ri = 25; //rotation increase per render (degrees)
 					$t = 0.6; //diameter
+					$y = $py + $yOffset;
 					
 					$rot = $model->getRuntimeData("rot");
 					if($rot === null){
@@ -120,19 +119,28 @@ class Renderer{
 					}
 				break;
 				case "back":
-					$y = $py + $yOffset;
 					$layout = $model->get2DMap();
-					$yaw = $pos->getYaw(); /* 0-360 DEGREES */
-					$yaw -= 45;
 					$sp = $model->getSpacing();
+					$mb = 0.25/*$model->getBackwardsOffset*/;
+					$y = $py + $yOffset;
+					$yaw = $pos->getYaw(); /* 0-360 DEGREES */
+					#$yaw -= 45;
 					$yawRad = ($yaw * -1 * self::DEG_TO_RAD);
+					var_dump($yaw);
 					if($model->getCenterMode() == Model2DMap::CENTER_STATIC){
 						$amb = max($model->getStrlenMap()) * $sp / 2;
-						$amb += $amb / M_PI; /* Please just don't ask me why! */
+						$amb -= 0.5*$sp;
+						var_dump($amb);
+						//$amb += $amb / M_PI; /* Please just don't ask me why! */
 					}
+					
+					/* moving to back */
+					$b = $yaw - 90;
+					$bx = cos($b * self::DEG_TO_RAD) * $mb;
+					$bz = sin($b * self::DEG_TO_RAD) * $mb;
 					foreach($layout as $layer){
 						$y -= $sp;
-						$diffx = 0;
+						$diffx = 0/*-0.5 * strlen($layer) * $sp*/;
 						$diffz = 0;
 						if($model->getCenterMode() == Model2DMap::CENTER_DYNAMIC){
 							$amb = strlen($layer) * $sp / 2;
@@ -143,12 +151,13 @@ class Renderer{
 							$sin = sin($yawRad); 
 							$rx = $diffx * $cos + $diffz * $sin;
 							$rz = -$diffx * $sin + $diffz * $cos;
-							$b = $yaw - 45;
-							$bx = cos($b * self::DEG_TO_RAD) * $sp;
-							$bz = sin($b * self::DEG_TO_RAD) * $sp;
-							$r = $yaw + 225;
+							Utils::debug("diffx: $diffx diffz: $diffz");
+							Utils::debug("rx: $rx (".$diffx * $cos."+".$diffz * $sin.") rz: $rz (".-$diffx * $sin."+". $diffz * $cos.")");
+							/* centering */
+							$r = $yaw - 180;
 							$cx = cos($r * self::DEG_TO_RAD) * $amb;
 							$cz = sin($r * self::DEG_TO_RAD) * $amb;
+							Utils::debug("cx: $cx cz: $cz");
 							$fx = $px + $rx + $bx + $cx;
 							$fz = $pz + $rz + $bz + $cz;
 							if($layer[$verticalpos] == "P"){
@@ -156,9 +165,10 @@ class Renderer{
 								$pos->getLevel()->addParticle($particleObject);
 							}
 							$diffx += $sp;
-							$diffz += $sp;
+							$diffz += 0;
 						}
 					}
+					Utils::debug("______");
 				break;
 				default:
 					Utils::critical("Failed to render Model '".$model->getName()."': Unknown modeltype '".$model->getModelType()."'.");
