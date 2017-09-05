@@ -86,7 +86,7 @@ class PlayerParticles extends PluginBase{
 	}
 	
 	/**
-      * @param string $registeredName The registeredName of your wanted model
+	  * @param string $registeredName The registeredName of your wanted model
 	  *
 	  * @return Model|null
 	  */
@@ -148,7 +148,7 @@ class PlayerParticles extends PluginBase{
 	}
 	
 	/**
-      * @param string $registeredName The registeredName of the model
+	  * @param string $registeredName The registeredName of the model
 	  *
 	  * @return bool Success
 	  */
@@ -206,7 +206,9 @@ class PlayerParticles extends PluginBase{
 		$rii = new \RecursiveIteratorIterator($rdi);
 		$ymlFiles = new \RegexIterator($rii, '/^.+\.yml$/i', \RegexIterator::GET_MATCH);
 		foreach($ymlFiles as $ymlFile){
-			var_dump($ymlFile);
+			if(strpos($ymlFile[0], $path."/defaults") !== false){
+				continue;
+			}
 			try{
 				$cfg = new Config($ymlFile[0], Config::YAML);
 			}catch(\Throwable $t){

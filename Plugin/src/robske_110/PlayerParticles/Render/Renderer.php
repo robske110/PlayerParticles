@@ -56,7 +56,7 @@ class Renderer{
 					$rot = $model->getRuntimeData("rot");
 					$rotRad = $rot * self::DEG_TO_RAD;
 					$cos = cos($rotRad);
-					$sin = sin($rotRad); 
+					$sin = sin($rotRad);
 					for($yaw = 0, $cy = $y; $cy < $y + $h; $yaw += (M_PI * 2) / $res, $cy += $yi, $t += $ti){
 						$diffx = -sin($yaw) * $t;
 						$diffz = cos($yaw) * $t;
@@ -70,8 +70,8 @@ class Renderer{
 				break;
 				case "headcircle":
 					$y = $py + $yOffset;
-					$ri = 25;
-					$t = 0.6;
+					$ri = 25; //rotation increase (per render)
+					$t = 0.6; //diameter
 					
 					$rot = $model->getRuntimeData("rot");
 					if($rot === null){
@@ -92,16 +92,23 @@ class Renderer{
 					$level->addParticle($particleObject);
 				break;
 				case "cone":
-					$t = 1;
-					$s = 5;
-					$d = 10;
-					$v = 0.25;
-					$p = 0.25;
-					$y = $pos->getY();
-					$dcpi = abs($t - $s) / ($d / $v);
+					$t = 2; //upper diameter
+					$s = 0; //lower diameter
+					$d = 2.5; //height
+					$v = 0.25; //vertical resolution
+					$p = 0.25; //horizontal resolution
+					$y = $py;
+					$dcpi = abs($t - $s) / (($d / $v) + 1);
 					for($iy = $y + $d; $y <= $iy; $iy -= $v){
 						$t -= $dcpi;
-						$ppc = round((2 * M_PI * $t) / $p);
+						if($t < 1E-15 && $t > -1E-15){ //Floating point error correction
+							$t = 0;
+						}
+						if($t !== 0){ //don't attempt to render a circle with diameter 0
+							$ppc = (2 * M_PI * $t) / $p;
+						}else{
+							$ppc = 1;
+						}
 						for($yaw = 0; $yaw <= M_PI * 2; $yaw += (M_PI * 2) / $ppc){
 							$diffx = -sin($yaw) * $t;
 							$diffz = cos($yaw) * $t;
