@@ -47,11 +47,11 @@ class Renderer{
 				case "helix":
 					$yOffset = 0;
 					
-					$h = 2;
-					$yi = 0.02;
-					$t = 0.25;
-					$ti = 0.01;
-					$res = 20;
+					$h = 2; //height
+					$yi = 0.02; //height increase per particle
+					$t = 0.25; //lower radius
+					$ti = 0.01; //radius increase per particle
+					$res = 25; //particles per circle
 					$y = $py + $yOffset;
 					$rot = $model->getRuntimeData("rot");
 					$rotRad = $rot * self::DEG_TO_RAD;
@@ -70,7 +70,7 @@ class Renderer{
 				break;
 				case "headcircle":
 					$y = $py + $yOffset;
-					$ri = 25; //rotation increase (per render)
+					$ri = 25; //rotation increase per render (degrees)
 					$t = 0.6; //diameter
 					
 					$rot = $model->getRuntimeData("rot");
@@ -95,16 +95,16 @@ class Renderer{
 					$t = 2; //upper diameter
 					$s = 0; //lower diameter
 					$d = 2.5; //height
-					$v = 0.25; //vertical resolution
-					$p = 0.25; //horizontal resolution
+					$v = 0.25; //vertical resolution (pixel every x blocks)
+					$p = 0.25; //horizontal resolution (pixel every x blocks)
 					$y = $py;
 					$dcpi = abs($t - $s) / (($d / $v) + 1);
 					for($iy = $y + $d; $y <= $iy; $iy -= $v){
 						$t -= $dcpi;
-						if($t < 1E-15 && $t > -1E-15){ //Floating point error correction
+						if($t < 1E-15 && $t > -1E-15){ /* Floating point error correction */
 							$t = 0;
 						}
-						if($t !== 0){ //don't attempt to render a circle with diameter 0
+						if($t !== 0){ /* don't attempt to render a circle with diameter 0 */
 							$ppc = (2 * M_PI * $t) / $p;
 						}else{
 							$ppc = 1;
@@ -125,7 +125,7 @@ class Renderer{
 					$yaw = $pos->getYaw(); /* 0-360 DEGREES */
 					$yaw -= 45;
 					$sp = $model->getSpacing();
-					$yawRad = ($yaw * -1 * self::DEG_TO_RAD); /* RADIANS - Don't ask me why inverted! */
+					$yawRad = ($yaw * -1 * self::DEG_TO_RAD);
 					if($model->getCenterMode() == Model2DMap::CENTER_STATIC){
 						$amb = max($model->getStrlenMap()) * $sp / 2;
 						$amb += $amb / M_PI; /* Please just don't ask me why! */
