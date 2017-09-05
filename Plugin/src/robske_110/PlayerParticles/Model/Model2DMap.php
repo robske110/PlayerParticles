@@ -49,7 +49,7 @@ class Model2DMap extends Model{
 			}
 		}
 		if(isset($data['spacing'])){
-			if(is_int($data['modeltype'])){
+			if(is_int($data['spacing'])){
 				$this->spacing = $data['spacing'];
 			}else{
 				Utils::notice("Model '".$this->getName()."': Key 'spacing' exists, but is not int, ignoring!");
@@ -65,7 +65,7 @@ class Model2DMap extends Model{
 	  *
 	  * @param array       $data   The data array to be checked
 	  * @param null|string $name   The name to be checked against (provide null if not applicable)
-	  * @param bool        $onlyMe INTERNAL! (May be removed anytime without API bump) 
+	  * @param bool        $onlyMe @internal (May be removed anytime without API bump) 
 	  *
 	  */
 	public static function checkIntegrity(array $data, $name, bool $onlyMe = false){
@@ -106,7 +106,7 @@ class Model2DMap extends Model{
 		return $this->centerMode;
 	}
 	
-	public function getSpacing(): int{
+	public function getSpacing(): float{
 		return $this->spacing;
 	}
 }

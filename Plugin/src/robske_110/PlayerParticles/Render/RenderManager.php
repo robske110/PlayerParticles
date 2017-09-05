@@ -22,7 +22,7 @@ class RenderManager extends PluginTask{
 	public function onRun($currentTick){
 		$this->renderJobs = [];
 		foreach($this->main->getServer()->getOnlinePlayers() as $player){
-			$this->renderJobs[] = new RenderJob($player, $this->main->getModel("IamCone"));
+			$this->renderJobs[] = new RenderJob($player, $this->main->getModel("Wing"));
 		}
 		foreach($this->renderJobs as $renderJob){
 			if($renderJob->isActive()){
