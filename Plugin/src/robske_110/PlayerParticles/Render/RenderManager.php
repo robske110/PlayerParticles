@@ -4,10 +4,13 @@ namespace robske_110\PlayerParticles\Render;
 
 use pocketmine\scheduler\PluginTask;
 
+use robske_110\PlayerParticles\Render\RenderJob;
+use robske_110\PlayerParticles\Render\Renderer;
 use robske_110\PlayerParticles\PlayerParticles;
 
 class RenderManager extends PluginTask{
 	private $main;
+	private $renderJobs = [];
 	private $server;
 
 	public function __construct(PlayerParticles $main){
@@ -17,19 +20,21 @@ class RenderManager extends PluginTask{
 	}
     
 	public function onRun($currentTick){
-		foreach($this->main->renderJobs as $renderJob){
+		$this->renderJobs = [];
+		foreach($this->main->getServer()->getOnlinePlayers() as $player){
+			$this->renderJobs[] = new RenderJob($player, $this->main->getModel("IamCone"));
+		}
+		foreach($this->renderJobs as $renderJob){
 			if($renderJob->isActive()){
 				$location = $renderJob->getLocation();
-				$models = $renderJob->getModels();
-				foreach($models as $model){
-					if(!$model->isActive()){
-						continue;
-					}
-					if($model->needsTickRot()){
-						$model->setRuntimeData(Model::DATA_TICK_ROT, abs($currentTick % 360 - 360)); #Inverted 360 degree rotation
-					}
-					$this->main->render($location, $model);
+				$model = $renderJob->getModel();
+				/*if(!$renderJob->isActive()){
+					continue;
+				}*/
+				if($model->needsTickRot()){
+					$model->setRuntimeData("rot", abs($currentTick % 360 - 360)); #Inverted 360 degree rotation
 				}
+				$this->main->getRenderer()->render($location, $model);
 			}
 		}
 	}

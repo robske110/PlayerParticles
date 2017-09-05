@@ -5,16 +5,24 @@ namespace robske_110\PlayerParticles\Render;
 use pocketmine\level\Location;
 
 use robske_110\PlayerParticles\Model\Model;
+use robske_110\PlayerParticles\Model\Model2DMap;
 use robske_110\PlayerParticles\Listener;
+use robske_110\PlayerParticles\PlayerParticles;
 use robske_110\Utils\Utils;
 
 use pocketmine\level\particle\GenericParticle;
 use pocketmine\math\Vector3;
 
 class Renderer{
-	/** @internal */
+	/** @var PlayerParticles */
+	private $playerParticles;
+	
 	const DEG_TO_RAD = M_PI / 180;
-
+	
+	public function __construct(PlayerParticles $playerParticles){
+		$this->playerParticles = $playerParticles;
+	}
+	
 	/**
 	  * Renders $model for $pos
 	  *
@@ -23,7 +31,7 @@ class Renderer{
 	  *
 	  * @return bool Success
 	  */
-	public function render(Location $pos, Model $model, array $additionalData = []): bool{
+	public function render(Location $pos, Model $model): bool{
 		set_error_handler(function($errno, $errstr, $errfile, $errline, array $errcontext){
 			Utils::debug(print_r($errcontext, true));
 		    throw new \ErrorException($errstr, 0, $errno, $errfile, $errline);
@@ -45,7 +53,7 @@ class Renderer{
 					$ti = 0.01;
 					$res = 20;
 					$y = $py + $yOffset;
-					$rot = $additionalData[0];
+					$rot = $model->getRuntimeData("rot");
 					$rotRad = $rot * self::DEG_TO_RAD;
 					$cos = cos($rotRad);
 					$sin = sin($rotRad); 
@@ -62,7 +70,7 @@ class Renderer{
 				break;
 				case "headcircle":
 					$y = $py + $yOffset;
-					$ri = 30;
+					$ri = 25;
 					$t = 0.6;
 					
 					$rot = $model->getRuntimeData("rot");
@@ -73,7 +81,6 @@ class Renderer{
 					if($rot > 360){
 						$rot = $ri;
 					}
-					echo("rot::$rot");
 					$model->setRuntimeData("rot", $rot);
 					
 					$rotRad = $rot * self::DEG_TO_RAD;
@@ -107,12 +114,12 @@ class Renderer{
 				break;
 				case "back":
 					$y = $py + $yOffset;
-					$layout = $model->getModelData();
+					$layout = $model->get2DMap();
 					$yaw = $pos->getYaw(); /* 0-360 DEGREES */
 					$yaw -= 45;
 					$sp = $model->getSpacing();
 					$yawRad = ($yaw * -1 * self::DEG_TO_RAD); /* RADIANS - Don't ask me why inverted! */
-					if($model->getCenterMode() == Model::CENTER_STATIC){
+					if($model->getCenterMode() == Model2DMap::CENTER_STATIC){
 						$amb = max($model->getStrlenMap()) * $sp / 2;
 						$amb += $amb / M_PI; /* Please just don't ask me why! */
 					}
@@ -120,7 +127,7 @@ class Renderer{
 						$y -= $sp;
 						$diffx = 0;
 						$diffz = 0;
-						if($model->getCenterMode() == Model::CENTER_DYNAMIC){
+						if($model->getCenterMode() == Model2DMap::CENTER_DYNAMIC){
 							$amb = strlen($layer) * $sp / 2;
 							$amb += $amb / M_PI; /* Please just don't ask me why! */
 						}
@@ -155,7 +162,7 @@ class Renderer{
 			return true;
 		}catch(\Throwable $t){
 			Utils::emergency("Failed to render Model '".$model->getName()."':");
-			$this->getLogger()->logException($t);
+			$this->playerParticles->getLogger()->logException($t);
 			restore_error_handler();
 			return false;
 		}

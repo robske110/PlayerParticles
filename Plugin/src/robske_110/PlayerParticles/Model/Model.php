@@ -9,7 +9,6 @@ use pocketmine\level\particle\Particle;
 
 class Model{
 
-	const RTM_DATA_TICK_ROT = 'eaca90748e20df12d32e';
 	const DEFAULT_PARTICLE_TYPE = [Particle::TYPE_FLAME, null];
 
 	private $name = "";
@@ -92,8 +91,6 @@ class Model{
 							}
 						}elseif(is_int($inputa[1])){
 							$finalParticle[1] = $inputa[1];
-						}else{
-							Utils::critical("Model '".$this->name."': WWWWTTTTFFF?? ERR_904");
 						}
 					}else{
 						$finalParticle[0] = self::getParticleIDbyName($input);
