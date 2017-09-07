@@ -124,51 +124,33 @@ class Renderer{
 					$mb = 0.25/*$model->getBackwardsOffset*/;
 					$y = $py + $yOffset;
 					$yaw = $pos->getYaw(); /* 0-360 DEGREES */
-					#$yaw -= 45;
-					$yawRad = ($yaw * -1 * self::DEG_TO_RAD);
-					var_dump($yaw);
-					if($model->getCenterMode() == Model2DMap::CENTER_STATIC){
-						$amb = max($model->getStrlenMap()) * $sp / 2;
-						$amb -= 0.5*$sp;
-						var_dump($amb);
-						//$amb += $amb / M_PI; /* Please just don't ask me why! */
-					}
 					
+					if($model->getCenterMode() == Model2DMap::CENTER_STATIC){
+						$svp = (max($model->getStrlenMap()) * $sp / 2) - $sp / 2;
+					}
 					/* moving to back */
-					$b = $yaw - 90;
-					$bx = cos($b * self::DEG_TO_RAD) * $mb;
-					$bz = sin($b * self::DEG_TO_RAD) * $mb;
+					$bx = cos(($yaw - 90) * self::DEG_TO_RAD) * $mb;
+					$bz = sin(($yaw - 90) * self::DEG_TO_RAD) * $mb;
+					/* roatating to match players back */
+					$cosR = cos($yaw * -1 * self::DEG_TO_RAD);
+					$sinR = sin($yaw * -1 * self::DEG_TO_RAD);
 					foreach($layout as $layer){
 						$y -= $sp;
-						$diffx = 0/*-0.5 * strlen($layer) * $sp*/;
-						$diffz = 0;
 						if($model->getCenterMode() == Model2DMap::CENTER_DYNAMIC){
-							$amb = strlen($layer) * $sp / 2;
-							$amb += $amb / M_PI; /* Please just don't ask me why! */
+							$vp = (strlen($layer) * $sp / 2) - $sp / 2;
+						}else{
+							$vp = $svp;
 						}
 						for($verticalpos = strlen($layer) - 1; $verticalpos >= 0; $verticalpos--){
-							$cos = cos($yawRad);
-							$sin = sin($yawRad); 
-							$rx = $diffx * $cos + $diffz * $sin;
-							$rz = -$diffx * $sin + $diffz * $cos;
-							Utils::debug("diffx: $diffx diffz: $diffz");
-							Utils::debug("rx: $rx (".$diffx * $cos."+".$diffz * $sin.") rz: $rz (".-$diffx * $sin."+". $diffz * $cos.")");
-							/* centering */
-							$r = $yaw - 180;
-							$cx = cos($r * self::DEG_TO_RAD) * $amb;
-							$cz = sin($r * self::DEG_TO_RAD) * $amb;
-							Utils::debug("cx: $cx cz: $cz");
-							$fx = $px + $rx + $bx + $cx;
-							$fz = $pz + $rz + $bz + $cz;
 							if($layer[$verticalpos] == "P"){
-								$particleObject = new GenericParticle(new Vector3($fx, $y, $fz), 7);
+								$rx = $vp * $cosR;
+								$rz = -$vp * $sinR;
+								$particleObject = new GenericParticle(new Vector3($px + $rx + $bx, $y, $pz + $rz + $bz), 7);
 								$pos->getLevel()->addParticle($particleObject);
 							}
-							$diffx += $sp;
-							$diffz += 0;
+							$vp -= $sp;
 						}
 					}
-					Utils::debug("______");
 				break;
 				default:
 					Utils::critical("Failed to render Model '".$model->getName()."': Unknown modeltype '".$model->getModelType()."'.");
