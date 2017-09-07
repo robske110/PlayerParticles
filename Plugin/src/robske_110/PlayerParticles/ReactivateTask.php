@@ -13,8 +13,6 @@ class ReactivateTask extends PluginTask{
 	/** @var array */
 	private $reactivateJobs = [];
 	/** @var int */
-	private $currTick;
-	/** @var int */
 	private $minTickDelay = PHP_INT_MAX;
 	
 	public function __construct(Plugin $main){
@@ -27,7 +25,7 @@ class ReactivateTask extends PluginTask{
 	 * @param int $tickDelay
 	 */
 	public function addReactivateJob(RenderJob $renderJob, int $tickDelay){
-		$this->reactivateJobs[] = [$renderJob, $this->currTick + $tickDelay];
+		$this->reactivateJobs[] = [$renderJob, $this->main->getServer()->getTick() + $tickDelay, $tickDelay];
 		$this->minReactivateTaskInterval($tickDelay);
 	}
 	
@@ -49,9 +47,6 @@ class ReactivateTask extends PluginTask{
 				$this->minTickDelay = $data[1];
 			}
 		}
-		if($this->minTickDelay === PHP_INT_MAX){
-			$this->minTickDelay = $oldMinTickDelay;
-		}
 		if($oldMinTickDelay !== $this->minTickDelay){
 			$this->reschedule();
 		}
@@ -61,20 +56,23 @@ class ReactivateTask extends PluginTask{
 		if(($tid = $this->getTaskId()) !== null){
 			$this->main->getServer()->getScheduler()->cancelTask($tid);
 		}
-		$this->main->getServer()->getScheduler()->scheduleRepeatingTask($this, $this->minTickDelay);
+		if($this->minTickDelay !== PHP_INT_MAX){
+			$this->main->getServer()->getScheduler()->scheduleRepeatingTask($this, $this->minTickDelay);
+		}
 	}
 	
 	public function onRun(int $currentTick){
-		$this->currTick = $currentTick;
 		$needRecalculate = false;
 		foreach($this->reactivateJobs as $index => $data){
 			if($data[1] <= $currentTick){
 				$data[0]->activate();
 				unset($this->reactivateJobs[$index]);
-				$needRecalculate = true;
+				if($data[2] > $this->minTickDelay){
+					$needRecalculate = true;
+				}
 			}
 		}
-		if($needRecalculate){
+		if($needRecalculate || empty($this->reactivateJobs)){
 			$this->recalculateReactivateTaskInterval();
 		}
 	}

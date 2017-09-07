@@ -55,7 +55,7 @@ class PlayerParticles extends PluginBase{
 			$this->config->set('hide-during-movement', true);
 			$this->config->set('hide-during-movement-cooldown', 5);
 			$this->config->set('debug', true);
-			$this->config->set('ConfigVersion', 0.15);
+			$this->config->set('ConfigVersion', 0.20);
 		}
 		$this->config->save();
 		Utils::init($this, $this->config->get('debug'), "[PlayerParticles]");

@@ -32,26 +32,16 @@ class PlayerManager{
 	
 	/**
 	 * @param int $playerID
-	 * @param int|null $ticks
-	 * @param bool $force
 	 *
 	 * @return bool Success
 	 */
-	public function hideRenderJobs(int $playerID, ?int $ticks = null, bool $force = false): bool{
+	public function hideRenderJobs(int $playerID): bool{
 		if(!isset($this->players[$playerID])){
 			return false;
 		}
-		if(!$force && !$this->hideDuringMovement){
-			return false;
-		}elseif($this->reactivateTask === null){
-			$this->initReactivateTask();
-		}
-		if($ticks === null){
-			$ticks = $this->hideDuringMovementCoolDown;
-		}
 		foreach($this->players[$playerID] as $renderJob){
 			$renderJob->deactivate();
-			$this->reactivateTask->addReactivateJob($renderJob, $ticks);
+			$this->reactivateTask->addReactivateJob($renderJob, $this->hideDuringMovementCoolDown);
 		}
 		return true;
 	}
