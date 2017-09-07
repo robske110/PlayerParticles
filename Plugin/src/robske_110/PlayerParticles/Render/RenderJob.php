@@ -2,8 +2,6 @@
 
 namespace robske_110\PlayerParticles\Render;
 
-use robske_110\PlayerParticles\PlayerParticles;
-use robske_110\Utils\Utils;
 use robske_110\PlayerParticles\Model\Model;
 
 use pocketmine\level\Location;
@@ -20,15 +18,24 @@ class RenderJob{
 		$this->pos = $pos;
 		$this->model = $model;
 	}
-	
-	public function modifyPos(Location $newPos){
+
+    /**
+     * @param Location $newPos
+     */
+    public function modifyPos(Location $newPos){
 		$this->pos = $newPos;
 	}
-	
+
+    /**
+     * @return Model
+     */
 	public function getModel(): Model{
 		return $this->model;
 	}
-	
+
+    /**
+     * @return Location
+     */
 	public function getLocation(){
 		return $this->pos;
 	}
@@ -40,7 +47,10 @@ class RenderJob{
 	public function deactivate(){
 		$this->active = false;
 	}
-	
+
+    /**
+     * @return bool isActive
+     */
 	public function isActive(): bool{
 		return $this->active;
 	}

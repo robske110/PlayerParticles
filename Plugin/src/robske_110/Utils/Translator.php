@@ -1,6 +1,6 @@
 <?php
 
-namespace robske_110\BanWarn;
+namespace robske_110\Utils;
 
 use pocketmine\Server;
 use pocketmine\utils\Config;

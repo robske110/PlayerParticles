@@ -11,11 +11,16 @@ class Model2DMap extends Model{
 	const CENTER_STATIC = 0;
 	const CENTER_DYNAMIC = 1;
 
+	/** @var array  */
 	private $map;
+	/** @var int */
 	private $centerMode;
-	private $spacing = 0.2;
-	
+	/** @var float|int  */
+	private $spacing = 0.25;
+
+	/** @var array  */
 	private $strlenMap = [];
+	/** @var array @todo */
 	private $particleMap = [];
 
 	public function __construct(array $data, $name = null){
@@ -29,8 +34,6 @@ class Model2DMap extends Model{
 		}
 		$this->map = explode("\n", $data['model']);
 		switch($data['centermode']){
-			default:
-				Utils::notice("Model '".$this->getName()."': CenterMode '".$data['centermode']."' not known, using default!");
 			case "static":
 			case "total":
 			case "all":
@@ -41,6 +44,9 @@ class Model2DMap extends Model{
 			case "invidual":
 			case "each":
 				$this->centerMode = self::CENTER_DYNAMIC;
+			break;
+			default:
+				Utils::notice("Model '".$this->getName()."': CenterMode '".$data['centermode']."' not known, using default!");
 			break;
 		}
 		if($this->centerMode == self::CENTER_STATIC){
@@ -60,14 +66,15 @@ class Model2DMap extends Model{
 	}
 	
 	/**
-	  * Can be used to check the basic integrity of $data, provide null for $name if not applicable
-	  * You may want to use this if you provide user entered data. 
-	  *
-	  * @param array       $data   The data array to be checked
-	  * @param null|string $name   The name to be checked against (provide null if not applicable)
-	  * @param bool        $onlyMe @internal (May be removed anytime without API bump) 
-	  *
-	  */
+	 * Can be used to check the basic integrity of $data, provide null for $name if not applicable
+	 * You may want to use this if you provide user entered data.
+	 *
+	 * @param array       $data   The data array to be checked
+	 * @param null|string $name   The name to be checked against (provide null if not applicable)
+	 * @param bool        $onlyMe @internal (May be removed anytime without API bump)
+	 *
+     * @return bool|string
+	 */
 	public static function checkIntegrity(array $data, $name, bool $onlyMe = false){
 		$stringKeys = ['model', 'centermode'];
 		foreach($stringKeys as $stringKey){

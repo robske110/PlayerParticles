@@ -18,8 +18,11 @@ class RenderManager extends PluginTask{
 		$this->main = $main;
 		$this->server = $main->getServer();
 	}
-    
-	public function onRun($currentTick){
+
+    /**
+     * @param int $currentTick
+     */
+    public function onRun(int $currentTick){
 		$this->renderJobs = [];
 		foreach($this->main->getServer()->getOnlinePlayers() as $player){
 			$this->renderJobs[] = new RenderJob($player, $this->main->getModel("Wing"));
@@ -28,9 +31,6 @@ class RenderManager extends PluginTask{
 			if($renderJob->isActive()){
 				$location = $renderJob->getLocation();
 				$model = $renderJob->getModel();
-				/*if(!$renderJob->isActive()){
-					continue;
-				}*/
 				if($model->needsTickRot()){
 					$model->setRuntimeData("rot", abs($currentTick % 360 - 360)); #Inverted 360 degree rotation
 				}

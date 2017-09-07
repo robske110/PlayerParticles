@@ -2,7 +2,6 @@
 
 namespace robske_110\PlayerParticles\Model;
 
-use robske_110\PlayerParticles\PlayerParticles;
 use robske_110\Utils\Utils;
 
 use pocketmine\level\particle\Particle;
@@ -19,7 +18,6 @@ class Model{
 	private $child = null;
 	
 	private $runtimeData = [];
-	private $active = true;
 
 	public function __construct(array $data, $name = null, $child = null){
 		if($child !== null){
@@ -32,7 +30,7 @@ class Model{
 			Utils::critical("Model '".isset($data['name']) ? $data['name'] : ""."' could not be loaded: Name must be null or string!");
 			return false;
 		}
-		if(is_string($msg = self::checkIntegrity($data, $name))){ #recover from missing/invalid model data
+		if(is_string($msg = self::checkIntegrity($data, $name))){
 			Utils::critical("Model '".isset($data['name']) ? $data['name'] : $name."' could not be loaded: ".$msg."!");
 			return false;
 		}
@@ -120,13 +118,14 @@ class Model{
 	}
 	
 	/**
-	  * Can be used to check the basic integrity of $data, provide null for $name if not applicable
-	  * You may want to use this if you provide user entered data. 
-	  *
-	  * @param array       $data   The data array to be checked
-	  * @param null|string $name   The name to be checked against (provide null if not applicable)
-	  *
-	  */
+	 * Can be used to check the basic integrity of $data, provide null for $name if not applicable
+	 * You may want to use this if you provide user entered data.
+	 *
+	 * @param array       $data   The data array to be checked
+	 * @param null|string $name   The name to be checked against (provide null if not applicable)
+	 *
+     * @return bool|string
+	 */
 	public static function checkIntegrity(array $data, $name){
 		$stringKeys = ['permgroup', 'name'];
 		foreach($stringKeys as $stringKey){

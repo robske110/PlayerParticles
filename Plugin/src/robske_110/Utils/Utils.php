@@ -6,15 +6,20 @@ use pocketmine\plugin\PluginBase;
 use pocketmine\Player;
 use pocketmine\command\CommandSender;
 use pocketmine\command\ConsoleCommandSender;
+use pocketmine\Utils\MainLogger;
 
 /**
   * @author robske_110
-  * @version 0.6.0-php7
+  * @version 0.7.0-php7
   */
 abstract class Utils{
-	private static $logger;
+    /** @var MainLogger */
+    private static $logger;
+    /** @var bool */
 	private static $debugEnabled;
-	private static $debugFile;
+    /** @var resource */
+    private static $debugFile;
+    /** @var string */
 	private static $prefix;
     
 	const LOG_LVL_INFO = 0;
@@ -36,7 +41,8 @@ abstract class Utils{
 		}
 		self::$prefix = $prefix;
 		if($debugEnabled){
-			$filename = $main->getDataFolder()."Debug".date("d:m:Y_H-i-s", time()).".txt";
+		    @mkdir($main->getDataFolder()."/Debug");
+			$filename = $main->getDataFolder()."/Debug/Debug".date("d:m:Y_H-i-s", time()).".txt";
 			self::$debugFile = fopen($filename,'w+');
 			if(!self::$debugFile){
 				self::$debugEnabled = false;
@@ -60,15 +66,6 @@ abstract class Utils{
 			return;
 		}
 		$sender->sendMessage($msg);
-	}
-	private static function getTypeAsNameOfSender(CommandSender $sender){
-		if($sender instanceof Player){
-			return $sender->getPlayer()->getName();
-		}
-		if($sender instanceof ConsoleCommandSender){
-			return "CONSOLE";
-		}
-		return "UNKNOWN";
 	}
 	
 	public static function log(string $msg, int $logLvl = self::LOG_LVL_INFO){
