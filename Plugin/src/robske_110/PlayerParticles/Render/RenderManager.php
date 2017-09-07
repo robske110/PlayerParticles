@@ -4,8 +4,6 @@ namespace robske_110\PlayerParticles\Render;
 
 use pocketmine\scheduler\PluginTask;
 
-use robske_110\PlayerParticles\Render\RenderJob;
-use robske_110\PlayerParticles\Render\Renderer;
 use robske_110\PlayerParticles\PlayerParticles;
 
 class RenderManager extends PluginTask{
@@ -18,16 +16,19 @@ class RenderManager extends PluginTask{
 		$this->main = $main;
 		$this->server = $main->getServer();
 	}
-
-    /**
-     * @param int $currentTick
-     */
+	
+	/**
+	 * @param RenderJob $renderJob
+	 */
+	public function addRenderJob(RenderJob $renderJob){
+		$this->renderJobs[] = $renderJob;
+	}
+	
     public function onRun(int $currentTick){
-		$this->renderJobs = [];
-		foreach($this->main->getServer()->getOnlinePlayers() as $player){
-			$this->renderJobs[] = new RenderJob($player, $this->main->getModel("Wing"));
-		}
-		foreach($this->renderJobs as $renderJob){
+		foreach($this->renderJobs as $index => $renderJob){
+			if($renderJob->isGarbage()){
+				unset($this->renderJobs[$index]);
+			}
 			if($renderJob->isActive()){
 				$location = $renderJob->getLocation();
 				$model = $renderJob->getModel();

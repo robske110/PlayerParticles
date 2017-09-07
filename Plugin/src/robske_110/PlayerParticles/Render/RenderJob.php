@@ -13,6 +13,8 @@ class RenderJob{
 	private $model;
 	/** @var bool */
 	private $active = true;
+	/** @var bool */
+	private $isGarbage = false;
 	
 	public function __construct(Location $pos, Model $model){
 		$this->pos = $pos;
@@ -53,6 +55,15 @@ class RenderJob{
      */
 	public function isActive(): bool{
 		return $this->active;
+	}
+	
+	public function delete(){
+		$this->deactivate();
+		$this->isGarbage = true;
+	}
+	
+	public function isGarbage(): bool{
+		return $this->isGarbage;
 	}
 }
 //Theory is when you know something, but it doesn't work. Practice is when something works, but you don't know why. Programmers combine theory and practice: Nothing works and they don't know why!

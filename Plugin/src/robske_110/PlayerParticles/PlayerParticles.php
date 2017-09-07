@@ -6,7 +6,6 @@ use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Config;
 
 use robske_110\PlayerParticles\Model\Model;
-use robske_110\PlayerParticles\Model\Model2DMap;
 use robske_110\PlayerParticles\Model\ModelManager;
 use robske_110\PlayerParticles\Render\RenderManager;
 use robske_110\Utils\Utils;
@@ -14,11 +13,17 @@ use robske_110\Utils\Utils;
 use robske_110\PlayerParticles\Render\Renderer;
 
 class PlayerParticles extends PluginBase{
-	private $listener; 
+	/** @var Config */
 	private $config;
-	private $models = [];
+	
+	/** @var EventListener */
+	private $listener;
+	/** @var Renderer */
 	private $renderer;
-	private $registeredDefaults = [];
+	/** @var RenderManager */
+	private $renderManager;
+	/** @var PlayerManager */
+	private $playerManager;
 	
 	/**
 	 * You should check this against your version either with your own implementation
@@ -30,7 +35,11 @@ class PlayerParticles extends PluginBase{
 	 * x.x.C BugFixes on API related functions, not breaking.
 	 */
 	const API_VERSION = "1.0.0-InDev";
-
+	
+	/** @var array */
+	private $models = [];
+	/** @var array arrray */
+	private $registeredDefaults = [];
 	private static $defaultModels = [
 		"Wing" => "wing.yml",
 		"Helix" => "helix.yml"
@@ -39,20 +48,28 @@ class PlayerParticles extends PluginBase{
 	public function onEnable(){
 		@mkdir($this->getDataFolder());
 		$this->config = new Config($this->getDataFolder() . "config.yml", Config::YAML, []);
-		if($this->config->get("ConfigVersion") != 0.15){
+		if($this->config->get("ConfigVersion") != 0.20){
 			$this->config->set('lang', 'eng');
 			$this->config->set('modeldatapath', "models");
+			$this->config->set('main-tickrate', 5);
+			$this->config->set('hide-during-movement', true);
+			$this->config->set('hide-during-movement-cooldown', 5);
 			$this->config->set('debug', true);
 			$this->config->set('ConfigVersion', 0.15);
 		}
 		$this->config->save();
 		Utils::init($this, $this->config->get('debug'), "[PlayerParticles]");
+		
+		ModelManager::init();
 		$this->initDefaults($this->config->get("modeldatapath")."/defaults");
 		$this->lookForUserFiles($this->getDataFolder().$this->config->get("modeldatapath"));
+		
 		$this->listener = new EventListener($this);
 		$this->getServer()->getPluginManager()->registerEvents($this->listener, $this);
 		$this->renderer = new Renderer($this);
-		$this->getServer()->getScheduler()->scheduleRepeatingTask(new RenderManager($this), 5);
+		$this->playerManager = new PlayerManager($this);
+		$this->renderManager = new RenderManager($this);
+		$this->getServer()->getScheduler()->scheduleRepeatingTask($this->renderManager, $this->config->get("main-tickrate"));
 	}
     
 	/**
@@ -76,10 +93,31 @@ class PlayerParticles extends PluginBase{
 	}
 	
 	/**
+	 * @return Config
+	 */
+	public function getConfig(): Config{
+		return $this->config;
+	}
+	
+	/**
 	 * @return Renderer
 	 */
 	public function getRenderer(): Renderer{
 		return $this->renderer;
+	}
+	
+	/**
+	 * @return RenderManager
+	 */
+	public function getRenderManager(): RenderManager{
+		return $this->renderManager;
+	}
+	
+	/**
+	 * @return PlayerManager
+	 */
+	public function getPlayerManager(): PlayerManager{
+		return $this->playerManager;
 	}
 	
 	/**
@@ -206,6 +244,8 @@ class PlayerParticles extends PluginBase{
 				$cfg = new Config($ymlFile[0], Config::YAML);
 			}catch(\Throwable $t){
 				$this->getLogger()->logException($t);
+				Utils::critical("Failed to load config for Model at '".$ymlFile[0]."'!");
+				continue;
 			}
 			if($cfg->check()){
 				if($registerName = $this->registerModel($this->createModelFromData($cfg->getAll())) === ""){
@@ -241,6 +281,8 @@ class PlayerParticles extends PluginBase{
 				$cfg = new Config($this->getDataFolder().$path."/".$fileName, Config::YAML);
 			}catch(\Throwable $t){
 				$this->getLogger()->logException($t);
+				Utils::critical("Failed to load config for default Model '".$name."'!");
+				continue;
 			}
 			if($cfg->check()){
 				if($registerName = $this->registerModel($this->createModelFromData($cfg->getAll(), $name)) !== ""){
