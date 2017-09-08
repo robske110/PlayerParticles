@@ -4,6 +4,7 @@ namespace robske_110\PlayerParticles\Model;
 
 use robske_110\Utils\Utils;
 
+use pocketmine\Player;
 use pocketmine\level\particle\Particle;
 
 class Model{
@@ -48,63 +49,14 @@ class Model{
 		}else{
 			Utils::notice("Model '".$this->name."': Key 'modeltype' does not exist, using default.");
 		}
-		if($this->hasParticleType()){
-			if(isset($data['particle'])){
-				$input = $data['particle'];
-				$finalParticle = [null, null];
-				if(is_int($input)){
-					$finalParticle[0] = $input;
-				}else{
-					if(strpos($input, ":") !== false){
-						$inputa = explode($input, ":");
-						if(count($inputa) > 2){
-							Utils::notice("Model '".$this->name."': Attribute 'particle': Has more than 2 sections, any above 2 will be ignored.");
-						}
-						if(is_int($inputa[0])){
-							$finalParticle[0] = $inputa[0];
-						}else{
-							$finalParticle[0] = self::getParticleIDbyName($inputa[0]);
-							Utils::notice("Model '".$this->name."': Attribute 'particle': Section1: The Particle with the name ".$inputa[0]." could not be found! Please use the Particle constant names which are declared here: https://github.com/pmmp/PocketMine-MP/blob/master/src/pocketmine/level/particle/Particle.php");
-						}
-						if(is_string($inputa[1])){
-							if(strpos($inputa[1], ",") !== false){
-								$inputasa = explode($input, ",");
-								if(count($inputasa) > 4){
-									Utils::notice("Model '".$this->name."': Attribute 'particle': Section2: Too many sections. Ignoring.");
-								}
-								if(count($inputasa) < 3){
-									Utils::notice("Model '".$this->name."' could not be loaded: Attribute 'particle': Section2: Must have at least 3 sections.");
-									return false;
-								}
-								$r = $inputasa[0];
-								$g = $inputasa[1];
-								$b = $inputasa[2];
-								$a = isset($inputasa[3]) ? $inputasa[3] : 255;
-								$finalParticle[1] = (($a & 0xff) << 24) | (($r & 0xff) << 16) | (($g & 0xff) << 8) | ($b & 0xff);
-							}elseif(ctype_xdigit($inputa[1])){
-								$finalParticle[1] = hexdec($inputa[1]);
-							}else{
-								Utils::critical("Model '".$this->name."' could not be loaded: Failure during parsing of 'particle' key: Unexpected Value for extraData");
-								return false;
-							}
-						}elseif(is_int($inputa[1])){
-							$finalParticle[1] = $inputa[1];
-						}
-					}else{
-						$finalParticle[0] = self::getParticleIDbyName($input);
-						if($finalParticle[0] == null){
-							Utils::notice("Model '".$this->name."': Attribute 'particle': The Particle with the name ".$input." could not be found! Please use the Particle constant names.");
-						}
-					}
-				}
-				if($finalParticle[0] === null){
-					$finalParticle[0] = Particle::TYPE_FLAME; 
-				}
-				$this->particleType = $finalParticle;
-			}else{
-				Utils::notice("Model '".$this->name."': Key 'particle' does not exist, using default.");
-				$this->particleType = self::DEFAULT_PARTICLE_TYPE;
+		if(isset($data['particle'])){
+			$this->particleType = $this->parseParticle($data['particle']);
+			if($this->particleType == null){
+				return false;
 			}
+		}else{
+			Utils::notice("Model '".$this->name."': Key 'particle' does not exist, using default.");
+			$this->particleType = self::DEFAULT_PARTICLE_TYPE;
 		}
 		$this->perm = $data['permgroup'];
 	}
@@ -115,6 +67,69 @@ class Model{
 		}else{
 			return null;
 		}
+	}
+	
+	public function parseParticle(mixed $input) : ?array{
+		$finalParticle = [null, null];
+		if(is_int($input)){
+			$finalParticle[0] = $input;
+		}else{
+			if(strpos($input, ":") !== false){
+				$inputa = explode($input, ":");
+				if(count($inputa) > 2){
+					Utils::notice("Model '".$this->name."': Attribute 'particle': Has more than 2 sections, ignoring.");
+				}
+				if(is_int($inputa[0])){
+					$finalParticle[0] = $inputa[0];
+				}else{
+					$finalParticle[0] = self::getParticleIDbyName($inputa[0]);
+					if($finalParticle[0] == null) {
+						Utils::notice(
+							"Model '" . $this->name . "' could not be loaded: Attribute 'particle': Section1: The Particle with the name " . $inputa[0] . " could not be found!" .
+							"Please use the Particle constant names which are declared here: https://github.com/pmmp/PocketMine-MP/blob/master/src/pocketmine/level/particle/Particle.php"
+						);
+						return null;
+					}
+				}
+				if(is_string($inputa[1])){
+					if(strpos($inputa[1], ",") !== false){
+						$inputasa = explode($input, ",");
+						if(count($inputasa) > 4){
+							Utils::notice("Model '".$this->name."': Attribute 'particle': Section2: Too many sections. Ignoring.");
+						}
+						if(count($inputasa) < 3){
+							Utils::notice("Model '".$this->name."' could not be loaded: Attribute 'particle': Section2: Must have at least 3 sections.");
+							return null;
+						}
+						$r = $inputasa[0];
+						$g = $inputasa[1];
+						$b = $inputasa[2];
+						$a = isset($inputasa[3]) ? $inputasa[3] : 255;
+						$finalParticle[1] = (($a & 0xff) << 24) | (($r & 0xff) << 16) | (($g & 0xff) << 8) | ($b & 0xff);
+					}elseif(ctype_xdigit($inputa[1])){
+						$finalParticle[1] = hexdec($inputa[1]);
+					}else{
+						Utils::critical("Model '".$this->name."' could not be loaded: Failure during parsing of 'particle' key: Unexpected Value for extraData");
+						return null;
+					}
+				}elseif(is_int($inputa[1])){
+					$finalParticle[1] = $inputa[1];
+				}
+			}else{
+				$finalParticle[0] = self::getParticleIDbyName($input);
+				if($finalParticle[0] == null){
+					Utils::notice(
+						"Model '".$this->name."' could not be loaded: The Particle with the name ".$input." could not be found! ".
+						"Please use the Particle constant names which are declared here: https://github.com/pmmp/PocketMine-MP/blob/master/src/pocketmine/level/particle/Particle.php"
+					);
+					return null;
+				}
+			}
+		}
+		if($finalParticle[0] === null){
+			$finalParticle[0] = Particle::TYPE_FLAME;
+		}
+		return $finalParticle;
 	}
 	
 	/**
@@ -176,7 +191,7 @@ class Model{
 		$this->runtimeData[$key] = $data;
 	}
 	
-	/** @TODO */
+	/** @todo */
 	public function canBeUsedByPlayer(Player $player): bool{
 		return true;
 	}
