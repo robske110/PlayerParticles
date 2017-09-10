@@ -121,13 +121,15 @@ class Renderer{
 				case "back":
 					$layout = $model->get2DMap();
 					$sp = $model->getSpacing();
-					$mb = 0.25/*$model->getBackwardsOffset*/;
+					$mb = $model->getBackwardsOffset();
 					$y = $py + $yOffset;
 					$yaw = $pos->getYaw(); /* 0-360 DEGREES */
 					
 					if($model->getCenterMode() == Model2DMap::CENTER_STATIC){
 						$svp = (max($model->getStrlenMap()) * $sp / 2) - $sp / 2;
 					}
+					$pM = $model->getParticleMap();
+					$fp = $model->getParticle();
 					/* moving to back */
 					$bx = cos(($yaw - 90) * self::DEG_TO_RAD) * $mb;
 					$bz = sin(($yaw - 90) * self::DEG_TO_RAD) * $mb;
@@ -141,11 +143,14 @@ class Renderer{
 						}else{
 							$vp = $svp;
 						}
-						for($verticalpos = strlen($layer) - 1; $verticalpos >= 0; $verticalpos--){
-							if($layer[$verticalpos] == "P"){
+						for($verticalPos = strlen($layer) - 1; $verticalPos >= 0; $verticalPos--){
+							if($layer[$verticalPos] !== "X"){
 								$rx = $vp * $cosR;
 								$rz = -$vp * $sinR;
-								$particleObject = new GenericParticle(new Vector3($px + $rx + $bx, $y, $pz + $rz + $bz), 7);
+								if($pM !== []){
+									$fp = $pM[$layer[$verticalPos]];
+								}
+								$particleObject = new GenericParticle(new Vector3($px + $rx + $bx, $y, $pz + $rz + $bz), $fp[0], $fp[1]);
 								$pos->getLevel()->addParticle($particleObject);
 							}
 							$vp -= $sp;

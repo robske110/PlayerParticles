@@ -50,7 +50,7 @@ class Model{
 			Utils::notice("Model '".$this->name."': Key 'modeltype' does not exist, using default.");
 		}
 		if(isset($data['particle'])){
-			$this->particleType = $this->parseParticle($data['particle']);
+			$this->particleType = $this->parseParticle($data['particle'], "Attribute 'particle'");
 			if($this->particleType == null){
 				return false;
 			}
@@ -69,7 +69,7 @@ class Model{
 		}
 	}
 	
-	public function parseParticle(mixed $input) : ?array{
+	public function parseParticle(mixed $input, string $dataIdentifier) : ?array{
 		$finalParticle = [null, null];
 		if(is_int($input)){
 			$finalParticle[0] = $input;
@@ -77,7 +77,7 @@ class Model{
 			if(strpos($input, ":") !== false){
 				$inputa = explode($input, ":");
 				if(count($inputa) > 2){
-					Utils::notice("Model '".$this->name."': Attribute 'particle': Has more than 2 sections, ignoring.");
+					Utils::notice("Model '".$this->name."': ".$dataIdentifier.": Has more than 2 sections, ignoring.");
 				}
 				if(is_int($inputa[0])){
 					$finalParticle[0] = $inputa[0];
@@ -85,7 +85,7 @@ class Model{
 					$finalParticle[0] = self::getParticleIDbyName($inputa[0]);
 					if($finalParticle[0] == null) {
 						Utils::notice(
-							"Model '" . $this->name . "' could not be loaded: Attribute 'particle': Section1: The Particle with the name " . $inputa[0] . " could not be found!" .
+							"Model '" . $this->name . "' could not be loaded: ".$dataIdentifier.": Section1: The Particle with the name " . $inputa[0] . " could not be found!" .
 							"Please use the Particle constant names which are declared here: https://github.com/pmmp/PocketMine-MP/blob/master/src/pocketmine/level/particle/Particle.php"
 						);
 						return null;
@@ -95,10 +95,10 @@ class Model{
 					if(strpos($inputa[1], ",") !== false){
 						$inputasa = explode($input, ",");
 						if(count($inputasa) > 4){
-							Utils::notice("Model '".$this->name."': Attribute 'particle': Section2: Too many sections. Ignoring.");
+							Utils::notice("Model '".$this->name."': ".$dataIdentifier.": Section2: Too many sections. Ignoring.");
 						}
 						if(count($inputasa) < 3){
-							Utils::notice("Model '".$this->name."' could not be loaded: Attribute 'particle': Section2: Must have at least 3 sections.");
+							Utils::notice("Model '".$this->name."' could not be loaded: ".$dataIdentifier.": Section2: Must have at least 3 sections.");
 							return null;
 						}
 						$r = $inputasa[0];
@@ -109,7 +109,7 @@ class Model{
 					}elseif(ctype_xdigit($inputa[1])){
 						$finalParticle[1] = hexdec($inputa[1]);
 					}else{
-						Utils::critical("Model '".$this->name."' could not be loaded: Failure during parsing of 'particle' key: Unexpected Value for extraData");
+						Utils::notice("Model '".$this->name."' could not be loaded: ".$dataIdentifier.": Unexpected Value for extraData");
 						return null;
 					}
 				}elseif(is_int($inputa[1])){
@@ -119,7 +119,7 @@ class Model{
 				$finalParticle[0] = self::getParticleIDbyName($input);
 				if($finalParticle[0] == null){
 					Utils::notice(
-						"Model '".$this->name."' could not be loaded: The Particle with the name ".$input." could not be found! ".
+						"Model '".$this->name."' could not be loaded: ".$dataIdentifier.": The Particle with the name ".$input." could not be found! ".
 						"Please use the Particle constant names which are declared here: https://github.com/pmmp/PocketMine-MP/blob/master/src/pocketmine/level/particle/Particle.php"
 					);
 					return null;
@@ -141,7 +141,7 @@ class Model{
 	 *
      * @return bool|string
 	 */
-	public static function checkIntegrity(array $data, $name){
+	public static function checkIntegrity(array $data, ?string $name){
 		$stringKeys = ['permgroup', 'name'];
 		foreach($stringKeys as $stringKey){
 			if(!isset($data[$stringKey])) return "Required key '".$stringKey."' not found";
@@ -163,16 +163,12 @@ class Model{
 		return $this->modelType;
 	}
 	
-	public function getPerm(): string{
-		return $this->perm;
+	public function getParticle(): array{
+		return $this->particleType;
 	}
 	
-	/** @internal */
-	public function hasParticleType(): bool{
-		if($this->child !== null){
-			return $this->child->hasParticleType();
-		}
-		return true;
+	public function getPerm(): string{
+		return $this->perm;
 	}
 	
 	/** @internal */
@@ -187,7 +183,7 @@ class Model{
 		return null;
 	}
 	
-	public function setRuntimeData(string $key, $data){
+	public function setRuntimeData(string $key, mixed $data){
 		$this->runtimeData[$key] = $data;
 	}
 	

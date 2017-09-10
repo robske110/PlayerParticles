@@ -2,9 +2,7 @@
 
 namespace robske_110\PlayerParticles\Model;
 
-use robske_110\PlayerParticles\PlayerParticles;
 use robske_110\Utils\Utils;
-use robske_110\PlayerParticles\Model\Model;
 
 class Model2DMap extends Model{
 
@@ -17,6 +15,8 @@ class Model2DMap extends Model{
 	private $centerMode;
 	/** @var float|int  */
 	private $spacing = 0.25;
+	/** @var float|int  */
+	private $backwardsOffset = 0.25;
 
 	/** @var array  */
 	private $strlenMap = [];
@@ -54,14 +54,64 @@ class Model2DMap extends Model{
 				$this->strlenMap[$key] = strlen($this->map[$key]);
 			}
 		}
+		if(isset($data['particles'])){
+			if(is_array($data['particles'])){
+				$fail = false;
+				foreach($data['particles'] as $letter => $particle){
+					if(strlen($letter) > 1){
+						$failmsg = "Identifier is supposed to be one char long.";
+						$fail = true;
+					}
+					$letter = strtoupper($letter);
+					if($letter === "X"){
+						$failmsg = "Don't use SPACE (X) as an identifier in ParticleMap";
+						$fail = true;
+					}
+					if(isset($this->particleMap[$letter])){
+						$failmsg = "You cannot use an Identifier twice in ParticleMap";
+						$fail = true;
+					}
+					if($fail){
+						Utils::critical("Model '".$this->getName()."': ParticleMap could not be loaded: ".$failmsg);
+						$this->particleMap = [];
+						break;
+					}
+					$this->particleMap[$letter] = $this->parseParticle($particle, "ParticleMap identifier ".$letter);
+					if($this->particleMap[$letter] === null){
+						Utils::critical("Model '".$this->getName()."': ParticleMap could not be loaded: Parsing particle fail at ParticleMap ident ".$letter); //TODO
+						$this->particleMap = [];
+						break;
+					}
+				}
+			}
+		}
+		foreach($this->map as $line => $layer){
+			for($verticalPos = strlen($layer) - 1; $verticalPos >= 0; $verticalPos--){
+				if($layer[$verticalPos] !== "X" || $layer[$verticalPos] !== "P"){
+					if(!isset($this->particleMap[$layer[$verticalPos]]){
+						Utils::critical("Model '".$this->getName()."' could not be loaded: Layout/Map contains unknown identifiers!");
+						return false;
+					}
+				}
+			}
+		}
 		if(isset($data['spacing'])){
-			if(is_int($data['spacing'])){
+			if(is_numeric($data['spacing'])){
 				$this->spacing = $data['spacing'];
 			}else{
-				Utils::notice("Model '".$this->getName()."': Key 'spacing' exists, but is not int, ignoring!");
+				Utils::notice("Model '".$this->getName()."': Key 'spacing' exists, but is not int/float, ignoring!");
 			}
 		}else{
 			Utils::debug("Model '".$this->getName()."': Key 'spacing' does not exist, using default.");
+		}
+		if(isset($data['backwardsOffset'])){
+			if(is_numeric($data['backwardsOffset'])){
+				$this->backwardsOffset = $data['backwardsOffset'];
+			}else{
+				Utils::notice("Model '".$this->getName()."': Key 'backwardsOffset' exists, but is not a valid number, ignoring!");
+			}
+		}else{
+			Utils::debug("Model '".$this->getName()."': Key 'backwardsOffset' does not exist, using default.");
 		}
 	}
 	
@@ -99,6 +149,14 @@ class Model2DMap extends Model{
 		return $this->strlenMap;
 	}
 	
+	public function getParticleMap(): array{
+		return $this->particleMap;
+	}
+	
+	public function getBackwardsOffset(): float{
+		return $this->backwardsOffset;
+	}
+	
 	/** @internal */
 	public function hasParticleType(): bool{
 		return false;
@@ -117,4 +175,3 @@ class Model2DMap extends Model{
 		return $this->spacing;
 	}
 }
-//Theory is when you know something, but it doesn't work. Practice is when something works, but you don't know why. Programmers combine theory and practice: Nothing works and they don't know why!
