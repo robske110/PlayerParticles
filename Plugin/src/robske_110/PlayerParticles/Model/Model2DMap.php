@@ -87,8 +87,8 @@ class Model2DMap extends Model{
 		}
 		foreach($this->map as $line => $layer){
 			for($verticalPos = strlen($layer) - 1; $verticalPos >= 0; $verticalPos--){
-				if($layer[$verticalPos] !== "X" || $layer[$verticalPos] !== "P"){
-					if(!isset($this->particleMap[$layer[$verticalPos]]){
+				if($layer[$verticalPos] !== "X" && $layer[$verticalPos] !== "P"){
+					if(!isset($this->particleMap[$layer[$verticalPos]])){
 						Utils::critical("Model '".$this->getName()."' could not be loaded: Layout/Map contains unknown identifiers!");
 						return false;
 					}
