@@ -9,6 +9,13 @@ class Model2DMap extends Model{
 	const CENTER_STATIC = 0;
 	const CENTER_DYNAMIC = 1;
 
+	const OPTIONS = [
+		"model" => [Model::SETTINGS_TYPE_STRING, null, true],
+		"centermode" => [Model::SETTINGS_TYPE_STRING, null, false],
+		"spacing" => [Model::SETTINGS_TYPE_NUMERIC, "spacing", true],
+		"backwardsoffset" => [Model::SETTINGS_TYPE_NUMERIC, "backwardsOffset", true],
+	];
+
 	/** @var array  */
 	private $map;
 	/** @var int */
@@ -20,17 +27,25 @@ class Model2DMap extends Model{
 
 	/** @var array  */
 	private $strlenMap = [];
-	/** @var array @todo */
+	/** @var array */
 	private $particleMap = [];
 
-	public function __construct(array $data, $name = null){
-		if(parent::__construct($data, $name, $this) === false){
-			Utils::debug("Model '".isset($data['name']) ? $data['name'] : $name."': Exiting out of subclass 2DMapModel");
-			return false;
+	public function __construct(array $data, ?string $name = null){
+		parent::__construct($data, $name, $this->getModelType());
+		if($this->isInvalid()){
+			return;
 		}
-		if(is_string($msg = self::checkIntegrity($data, $name, true))){ #recover from missing/invalid model data
-			Utils::critical("Model '".isset($data['name']) ? $data['name'] : $name."' could not be loaded: ".$msg."!");
-			return false;
+		if(is_array($result = Model::processOptions($data, $name, self::OPTIONS))){
+			foreach($result as $optionVarName => $optionData){
+				$this->$optionVarName = $optionData;
+			}
+		}elseif(is_string($result)){
+			$this->modelLoadFail($result."!");
+			$this->isInvalid = true;
+			return;
+		}else{
+			Utils::emergency("Unknown error while loading Model '".$this->getName()."'.");
+			return;
 		}
 		$this->map = explode("\n", $data['model']);
 		switch($data['centermode']){
@@ -46,7 +61,7 @@ class Model2DMap extends Model{
 				$this->centerMode = self::CENTER_DYNAMIC;
 			break;
 			default:
-				Utils::notice("Model '".$this->getName()."': CenterMode '".$data['centermode']."' not known, using default!");
+				$this->modelMessage("CenterMode '".$data['centermode']."' not known, using default!");
 			break;
 		}
 		if($this->centerMode == self::CENTER_STATIC){
@@ -72,13 +87,16 @@ class Model2DMap extends Model{
 						$fail = true;
 					}
 					if($fail){
-						Utils::critical("Model '".$this->getName()."': ParticleMap could not be loaded: ".$failmsg);
+						$this->modelLoadFail("ParticleMap could not be loaded: ".$failmsg);
 						$this->particleMap = [];
 						break;
 					}
 					$this->particleMap[$letter] = $this->parseParticle($particle, "ParticleMap identifier ".$letter);
 					if($this->particleMap[$letter] === null){
-						Utils::critical("Model '".$this->getName()."': ParticleMap could not be loaded: Parsing particle fail at ParticleMap ident ".$letter); //TODO
+						$this->modelLoadFail(
+							"ParticleMap could not be loaded:".
+							"Parsing particle fail at ParticleMap identifier '".$letter."'!"
+						);
 						$this->particleMap = [];
 						break;
 					}
@@ -86,11 +104,17 @@ class Model2DMap extends Model{
 			}
 		}
 		foreach($this->map as $line => $layer){
+			$layer = str_replace(" ", "", $layer);
+			$this->map[$line] = $layer;
 			for($verticalPos = strlen($layer) - 1; $verticalPos >= 0; $verticalPos--){
 				if($layer[$verticalPos] !== "X" && $layer[$verticalPos] !== "P"){
 					if(!isset($this->particleMap[$layer[$verticalPos]])){
-						Utils::critical("Model '".$this->getName()."' could not be loaded: Layout/Map contains unknown identifiers!");
-						return false;
+						$this->modelLoadFail(
+							"Layout/Map contains unknown identifier(s): In line ".
+							$line.": '".$layer[$verticalPos]."'"
+						);
+						$this->isInvalid = true;
+						return;
 					}
 				}
 			}
@@ -99,19 +123,19 @@ class Model2DMap extends Model{
 			if(is_numeric($data['spacing'])){
 				$this->spacing = $data['spacing'];
 			}else{
-				Utils::notice("Model '".$this->getName()."': Key 'spacing' exists, but is not int/float, ignoring!");
+				$this->modelMessage("Key 'spacing' exists, but is not int/float, ignoring!");
 			}
 		}else{
-			Utils::debug("Model '".$this->getName()."': Key 'spacing' does not exist, using default.");
+			$this->modelMessage("Key 'spacing' does not exist, using default.", Utils::LOG_LVL_DEBUG);
 		}
 		if(isset($data['backwardsOffset'])){
 			if(is_numeric($data['backwardsOffset'])){
 				$this->backwardsOffset = $data['backwardsOffset'];
 			}else{
-				Utils::notice("Model '".$this->getName()."': Key 'backwardsOffset' exists, but is not a valid number, ignoring!");
+				$this->modelMessage("Key 'backwardsOffset' exists, but is not a valid number, ignoring!");
 			}
 		}else{
-			Utils::debug("Model '".$this->getName()."': Key 'backwardsOffset' does not exist, using default.");
+			$this->modelMessage("Key 'backwardsOffset' does not exist, using default.", Utils::LOG_LVL_DEBUG);
 		}
 	}
 	

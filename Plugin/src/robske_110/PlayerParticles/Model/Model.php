@@ -10,66 +10,70 @@ use pocketmine\level\particle\Particle;
 class Model{
 
 	const DEFAULT_PARTICLE_TYPE = [Particle::TYPE_FLAME, null];
+	
+	const SETTINGS_TYPE_STRING = 0;
+	const SETTINGS_TYPE_NUMERIC = 1;
 
 	private $name = "";
 	private $modelType = "generic";
 	private $particleType = null;
 	private $perm;
+	protected $isInvalid = false;
 	
-	private $child = null;
-	
+	/** @var array */
 	private $runtimeData = [];
 
-	public function __construct(array $data, $name = null, $child = null){
-		if($child !== null){
-			$this->child = $child;
-			$forcedID = $child->getID();
-		}else{
-			$forcedID = null;
-		}
-		if($name !== null && !is_string($name)){
-			Utils::critical("Model '".isset($data['name']) ? $data['name'] : ""."' could not be loaded: Name must be null or string!");
-			return false;
-		}
+	public function __construct(array $data, ?string $name = null, ?string $forcedID = null){
 		if(is_string($msg = self::checkIntegrity($data, $name))){
 			Utils::critical("Model '".isset($data['name']) ? $data['name'] : $name."' could not be loaded: ".$msg."!");
-			return false;
+			$this->isInvalid = true;
+			return;
 		}
 		$this->name = $data['name'];
 		if(isset($data['modeltype'])){
 			if(is_string($data['modeltype'])){
-				if($forcedID !== null && ($data['modeltype'] !== $forcedID)){
-					Utils::critical("Model '".$this->name."' could not be loaded: Wrong modeltype for the subclass!");
-					return false;
+				if($forcedID !== null && $data['modeltype'] !== $forcedID){
+					$this->modelLoadFail("Model '".$this->name."' could not be loaded: Wrong modeltype for the subclass!");
+					$this->isInvalid = true;
+					return;
 				}
 				$this->modelType = $data['modeltype'];
 			}else{
-				Utils::notice("Model '".$this->name."': Key 'modeltype' exists, but is not string, ignoring.");
+				$this->modelMessage("Key 'modeltype' exists, but is not string, ignoring.");
 			}
 		}else{
-			Utils::notice("Model '".$this->name."': Key 'modeltype' does not exist, using default.");
+			$this->modelMessage("Key 'modeltype' does not exist, using default.");
 		}
 		if(isset($data['particle'])){
 			$this->particleType = $this->parseParticle($data['particle'], "Attribute 'particle'");
 			if($this->particleType == null){
-				return false;
+				$this->isInvalid = true;
+				return;
 			}
 		}else{
-			Utils::notice("Model '".$this->name."': Key 'particle' does not exist, using default.");
+			$this->modelMessage("Key 'particle' does not exist, using default.");
 			$this->particleType = self::DEFAULT_PARTICLE_TYPE;
 		}
 		$this->perm = $data['permgroup'];
 	}
-    
-	public static function getParticleIDbyName(string $name){ #PHP 7.1: add ?int
-		if(defined("Particle::".$name)){
-			return constant("Particle::".$name);
+ 
+	public function modelMessage(string $msg, int $logLevel = Utils::LOG_LVL_NOTICE){
+		Utils::log("Model '".$this->name."': ".$msg, $logLevel);
+	}
+	
+	public function modelLoadFail(string $msg, int $logLevel = Utils::LOG_LVL_CRITICAL){
+		Utils::log("Model '".$this->name."' could not be loaded: ".$msg, $logLevel);
+	}
+	
+	public static function getParticleIDbyName(string $name): ?int{
+		if(defined("\pocketmine\level\particle\Particle::".$name)){
+			return constant("\pocketmine\level\particle\Particle::".$name);
 		}else{
 			return null;
 		}
 	}
 	
-	public function parseParticle(mixed $input, string $dataIdentifier) : ?array{
+	public function parseParticle($input, string $dataIdentifier): ?array{
 		$finalParticle = [null, null];
 		if(is_int($input)){
 			$finalParticle[0] = $input;
@@ -77,15 +81,15 @@ class Model{
 			if(strpos($input, ":") !== false){
 				$inputa = explode($input, ":");
 				if(count($inputa) > 2){
-					Utils::notice("Model '".$this->name."': ".$dataIdentifier.": Has more than 2 sections, ignoring.");
+					$this->modelMessage($dataIdentifier.": Has more than 2 sections, ignoring.");
 				}
 				if(is_int($inputa[0])){
 					$finalParticle[0] = $inputa[0];
 				}else{
 					$finalParticle[0] = self::getParticleIDbyName($inputa[0]);
-					if($finalParticle[0] == null) {
-						Utils::notice(
-							"Model '" . $this->name . "' could not be loaded: ".$dataIdentifier.": Section1: The Particle with the name " . $inputa[0] . " could not be found!" .
+					if($finalParticle[0] == null){
+						$this->modelMessage(
+							"Model '" . $this->name . "': ".$dataIdentifier.": Section1: The Particle with the name '" . $inputa[0] . "' could not be found!" .
 							"Please use the Particle constant names which are declared here: https://github.com/pmmp/PocketMine-MP/blob/master/src/pocketmine/level/particle/Particle.php"
 						);
 						return null;
@@ -95,10 +99,10 @@ class Model{
 					if(strpos($inputa[1], ",") !== false){
 						$inputasa = explode($input, ",");
 						if(count($inputasa) > 4){
-							Utils::notice("Model '".$this->name."': ".$dataIdentifier.": Section2: Too many sections. Ignoring.");
+							$this->modelMessage($dataIdentifier.": Section2: Too many sections. Ignoring.");
 						}
 						if(count($inputasa) < 3){
-							Utils::notice("Model '".$this->name."' could not be loaded: ".$dataIdentifier.": Section2: Must have at least 3 sections.");
+							$this->modelMessage($dataIdentifier.": Section2: Must have at least 3 sections.");
 							return null;
 						}
 						$r = $inputasa[0];
@@ -109,7 +113,7 @@ class Model{
 					}elseif(ctype_xdigit($inputa[1])){
 						$finalParticle[1] = hexdec($inputa[1]);
 					}else{
-						Utils::notice("Model '".$this->name."' could not be loaded: ".$dataIdentifier.": Unexpected Value for extraData");
+						$this->modelMessage($dataIdentifier.": Unexpected Value for extraData");
 						return null;
 					}
 				}elseif(is_int($inputa[1])){
@@ -118,8 +122,8 @@ class Model{
 			}else{
 				$finalParticle[0] = self::getParticleIDbyName($input);
 				if($finalParticle[0] == null){
-					Utils::notice(
-						"Model '".$this->name."' could not be loaded: ".$dataIdentifier.": The Particle with the name ".$input." could not be found! ".
+					$this->modelMessage(
+						$dataIdentifier.": The Particle with the name ".$input." could not be found! ".
 						"Please use the Particle constant names which are declared here: https://github.com/pmmp/PocketMine-MP/blob/master/src/pocketmine/level/particle/Particle.php"
 					);
 					return null;
@@ -132,16 +136,31 @@ class Model{
 		return $finalParticle;
 	}
 	
+	
 	/**
 	 * Can be used to check the basic integrity of $data, provide null for $name if not applicable
 	 * You may want to use this if you provide user entered data.
 	 *
-	 * @param array       $data   The data array to be checked
-	 * @param null|string $name   The name to be checked against (provide null if not applicable)
+	 * @param array       $data    The data array to be checked
+	 * @param null|string $name    The name to be checked against (provide null if not applicable)
+	 * @param array       $options string $optionName => [string $optionName, ?string $optionVarName, bool $isRequired]
 	 *
-     * @return bool|string
+     * @return array|string Returns array with [$optionVarName => $optionValue] on success and an string with error info
+	 *                      on failure.
 	 */
-	public static function checkIntegrity(array $data, ?string $name){
+	public static function processOptions(array $data, string $name, array $options){
+		foreach($options as $optionName => $optionInfo){
+			switch($optionInfo[0]){
+				case self::SETTINGS_TYPE_STRING:
+					if(!isset($data[$optionName])){
+						if($optionInfo[2]){
+							return "Required key '".$optionName."' not found.";
+						}
+					}
+				break;
+			}
+		}
+		
 		$stringKeys = ['permgroup', 'name'];
 		foreach($stringKeys as $stringKey){
 			if(!isset($data[$stringKey])) return "Required key '".$stringKey."' not found";
@@ -153,6 +172,10 @@ class Model{
 			}
 		}
 		return true;
+	}
+	
+	public function isInvalid(): bool{
+		return $this->isInvalid;
 	}
 	
 	public function getName(): string{
@@ -192,4 +215,3 @@ class Model{
 		return true;
 	}
 }
-//Theory is when you know something, but it doesn't work. Practice is when something works, but you don't know why. Programmers combine theory and practice: Nothing works and they don't know why!

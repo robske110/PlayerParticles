@@ -4,6 +4,7 @@ namespace robske_110\PlayerParticles;
 
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Config;
+use pocketmine\event\player\PlayerLoginEvent;
 
 use robske_110\PlayerParticles\Model\Model;
 use robske_110\PlayerParticles\Model\ModelManager;
@@ -28,7 +29,7 @@ class PlayerParticles extends PluginBase{
 	/**
 	 * You should check this against your version either with your own implementation
 	 * or with @link{$this->isCompatible}
-	 * (This only tracks changes to non @internal stuff)
+	 * (This only tracks changes to non @internal marked stuff)
 	 * If C changes:
 	 * C.x.x Breaking changes, disable your plugin with an error message or disable any PP API usage.
 	 * x.C.x Feature additions, usually not breaking. (Use this if you require certain new features)
@@ -36,10 +37,11 @@ class PlayerParticles extends PluginBase{
 	 */
 	const API_VERSION = "1.0.0-InDev";
 	
-	/** @var array */
+	/** @var Model[] */
 	private $models = [];
-	/** @var array arrray */
+	/** @var Model[] */
 	private $registeredDefaults = [];
+	/** @var array */
 	private static $defaultModels = [
 		"Wing" => "wing.yml",
 		"Helix" => "helix.yml"
@@ -61,8 +63,8 @@ class PlayerParticles extends PluginBase{
 		Utils::init($this, $this->config->get('debug'), "[PlayerParticles]");
 		
 		ModelManager::init();
-		$this->initDefaults($this->config->get("modeldatapath")."/defaults");
-		$this->lookForUserFiles($this->getDataFolder().$this->config->get("modeldatapath"));
+		$this->registerDefaultModels($this->config->get("modeldatapath")."/defaults");
+		$this->registerUserModels($this->getDataFolder().$this->config->get("modeldatapath"));
 		
 		$this->listener = new EventListener($this);
 		$this->getServer()->getPluginManager()->registerEvents($this->listener, $this);
@@ -70,6 +72,10 @@ class PlayerParticles extends PluginBase{
 		$this->playerManager = new PlayerManager($this);
 		$this->renderManager = new RenderManager($this);
 		$this->getServer()->getScheduler()->scheduleRepeatingTask($this->renderManager, $this->config->get("main-tickrate"));
+		
+		foreach($this->getServer()->getOnlinePlayers() as $player){
+			$this->listener->onJoin(new PlayerLoginEvent($player, ""));
+		}
 	}
     
 	/**
@@ -159,24 +165,22 @@ class PlayerParticles extends PluginBase{
 	 * @return string Returns the index name
 	 */
 	public function registerModel(Model $model): string{
-		if($model->getName() == ""){
-			Utils::debug("Attempted to register a Model with empty name! Did the model fail to load?");
+		if($model->isInvalid()){
+			Utils::debug("Attempted to register an invalid Model!");
 			return "";
 		}
 
 		if(isset($this->models[$model->getName()])){
 			Utils::debug("Model '".$model->getName()."' already exists, incrementing name.");
 			$i = 1;
-			$foundFreeName = false;
-			while(!$foundFreeName){
+			while(true){
 				$name = $model->getName().$i;
 				if(!isset($this->models[$name])){
-					$foundFreeName = true;
+					$this->models[$name] = $model;
+					return $name;
 				}
 				$i++;
 			}
-			$this->models[$name] = $model;
-			return $name;
 		}
 		$this->models[$model->getName()] = $model;
 		return $model->getName();
@@ -195,14 +199,34 @@ class PlayerParticles extends PluginBase{
 		return false;
 	}
 	
+	/**
+	 * Returns all registeredModels, including defaults. The key is the registeredName/ID and the value is the Model
+	 * Object.
+	 *
+	 * @return array
+	 */
 	public function getRegisteredModels(): array{
 		return $this->models;
 	}
 	
+	/**
+	 * Returns all registeredDefaults with the key being the actual registeredName/ID and the value is the name which
+	 * is equal to the index name in @link{self::$defaultModesl} for that specific default Model.
+	 *
+	 * @return array
+	 */
 	public function getDefaultModels(): array{
 		return $this->registeredDefaults;
 	}
 	
+	/**
+	 * Creates a Model object from data.
+	 *
+	 * @param array $data
+	 * @param null|string $name
+	 *
+	 * @return null|Model
+	 */
 	public function createModelFromData(array $data, ?string $name = null): ?Model{
 		if(isset($data['name'])){
 			$rName = $data['name'];
@@ -229,10 +253,17 @@ class PlayerParticles extends PluginBase{
         }else{
             $model = new Model($data, $rName); #will probably result in an invalid model, worth a try though
         }
+		/*if($model->isInvalid()){
+			return null;
+		}*/
 		return $model;
 	}
 	
-	public function lookForUserFiles(string $path){
+	/**
+	 * @internal
+	 * @param string $path
+	 */
+	public function registerUserModels(string $path){
 		$rdi = new \RecursiveDirectoryIterator($path);
 		$rii = new \RecursiveIteratorIterator($rdi);
 		$ymlFiles = new \RegexIterator($rii, '/^.+\.yml$/i', \RegexIterator::GET_MATCH);
@@ -261,7 +292,7 @@ class PlayerParticles extends PluginBase{
      * @internal
      * @param string $path
      */
-    private function initDefaults(string $path){
+    private function registerDefaultModels(string $path){
 		foreach(self::$defaultModels as $name => $fileName){
 			$res = $this->getResource($fileName);
 			if($res === null){
@@ -270,7 +301,7 @@ class PlayerParticles extends PluginBase{
 			}elseif(is_resource($res)){
 				fclose($res);
 			}else{
-				Utils::critical("PluginBase->getResource returned no resource and not null. Aborting loading '".$name."'!");
+				Utils::critical("PluginBase->getResource(".$fileName.") returned no resource and not null. Aborting loading '".$name."'!");
 				continue;
 			}
 			$this->saveResource($fileName);

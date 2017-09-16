@@ -150,7 +150,7 @@ class Renderer{
 								if($pM !== []){
 									$fp = $pM[$layer[$verticalPos]];
 								}
-								$particleObject = new GenericParticle(new Vector3($px + $rx + $bx, $y, $pz + $rz + $bz), $fp[0], $fp[1]);
+								$particleObject = new GenericParticle(new Vector3($px + $rx + $bx, $y, $pz + $rz + $bz), $fp[0], $fp[1] ?? 0);
 								$pos->getLevel()->addParticle($particleObject);
 							}
 							$vp -= $sp;

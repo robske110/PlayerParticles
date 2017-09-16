@@ -2,7 +2,6 @@
 
 namespace robske_110\Utils;
 
-use pocketmine\Server;
 use pocketmine\utils\Config;
 use pocketmine\plugin\PluginBase;
 
@@ -12,7 +11,6 @@ use pocketmine\plugin\PluginBase;
   * @todo use getLangByFriendlyName, handle lang cannot be found
   */
 class Translator{
-	private $main;
 	private $translationFile;
 	private $fallBackFile;
 	public $selectedLang;
@@ -42,12 +40,18 @@ class Translator{
 		return self::$dataFolder.self::getLangFileName($lang);
 	}
 	
-	public function __construct(PluginBase $main, Server $server, string $selectedLang){
-		$this->main = $main;
+	public static function init(PluginBase $main){
 		foreach(self::$langs as $lang){
-			$this->main->saveResource(self::getLangFileName($lang));
+			$main->saveResource(self::getLangFileName($lang));
 		}
-		self::$dataFolder = $this->main->getDataFolder();
+		self::$dataFolder = $main->getDataFolder();
+	}
+	
+	public function __construct(string $selectedLang){
+		if(!in_array($selectedLang, $langs, true)){
+			Utils::critical("Invalid selectedLang: selectedLang '".$selectedLang."' not found!");
+			return;
+		}
 		$this->translationFile = new Config(self::getLangFilePath($selectedLang), Config::YAML, []);
 		$this->fallBackFile = new Config(self::getLangFilePath(self::$langs[1]), Config::YAML, []);
 		$this->selectedLang = $selectedLang;
