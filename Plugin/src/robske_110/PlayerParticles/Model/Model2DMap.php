@@ -9,11 +9,11 @@ class Model2DMap extends Model{
 	const CENTER_STATIC = 0;
 	const CENTER_DYNAMIC = 1;
 
-	const OPTIONS = [
-		"model" => [Model::SETTINGS_TYPE_STRING, null, true],
-		"centermode" => [Model::SETTINGS_TYPE_STRING, null, false],
-		"spacing" => [Model::SETTINGS_TYPE_NUMERIC, "spacing", true],
-		"backwardsoffset" => [Model::SETTINGS_TYPE_NUMERIC, "backwardsOffset", true],
+	const PARAMS = [
+		"model" => [Model::PARAMS_TYPE_STRING, null, true],
+		"centermode" => [Model::PARAMS_TYPE_STRING, null, false],
+		"spacing" => [Model::PARAMS_TYPE_NUMERIC, "spacing", true],
+		"backwardsoffset" => [Model::PARAMS_TYPE_NUMERIC, "backwardsOffset", true],
 	];
 
 	/** @var array  */
@@ -35,16 +35,13 @@ class Model2DMap extends Model{
 		if($this->isInvalid()){
 			return;
 		}
-		if(is_array($result = Model::processOptions($data, $name, self::OPTIONS))){
+		if(is_array($result = $this->processOptions($data, self::PARAMS))){
 			foreach($result as $optionVarName => $optionData){
 				$this->$optionVarName = $optionData;
 			}
 		}elseif(is_string($result)){
 			$this->modelLoadFail($result."!");
 			$this->isInvalid = true;
-			return;
-		}else{
-			Utils::emergency("Unknown error while loading Model '".$this->getName()."'.");
 			return;
 		}
 		$this->map = explode("\n", $data['model']);
@@ -119,46 +116,6 @@ class Model2DMap extends Model{
 				}
 			}
 		}
-		if(isset($data['spacing'])){
-			if(is_numeric($data['spacing'])){
-				$this->spacing = $data['spacing'];
-			}else{
-				$this->modelMessage("Key 'spacing' exists, but is not int/float, ignoring!");
-			}
-		}else{
-			$this->modelMessage("Key 'spacing' does not exist, using default.", Utils::LOG_LVL_DEBUG);
-		}
-		if(isset($data['backwardsOffset'])){
-			if(is_numeric($data['backwardsOffset'])){
-				$this->backwardsOffset = $data['backwardsOffset'];
-			}else{
-				$this->modelMessage("Key 'backwardsOffset' exists, but is not a valid number, ignoring!");
-			}
-		}else{
-			$this->modelMessage("Key 'backwardsOffset' does not exist, using default.", Utils::LOG_LVL_DEBUG);
-		}
-	}
-	
-	/**
-	 * Can be used to check the basic integrity of $data, provide null for $name if not applicable
-	 * You may want to use this if you provide user entered data.
-	 *
-	 * @param array       $data   The data array to be checked
-	 * @param null|string $name   The name to be checked against (provide null if not applicable)
-	 * @param bool        $onlyMe @internal (May be removed anytime without API bump)
-	 *
-     * @return bool|string
-	 */
-	public static function checkIntegrity(array $data, $name, bool $onlyMe = false){
-		$stringKeys = ['model', 'centermode'];
-		foreach($stringKeys as $stringKey){
-			if(!isset($data[$stringKey])) return "Required key '".$stringKey."' not found";
-			if(!is_string($data[$stringKey])) return "Key '".$stringKey."' is not string";
-		}
-		if($onlyMe){
-			return true;
-		}
-		return parent::checkIntegrity($data, $name);
 	}
     
 	public static function getID(): string{

@@ -11,38 +11,44 @@ class Model{
 
 	const DEFAULT_PARTICLE_TYPE = [Particle::TYPE_FLAME, null];
 	
-	const SETTINGS_TYPE_STRING = 0;
-	const SETTINGS_TYPE_NUMERIC = 1;
+	const PARAMS_TYPE_STRING = 0;
+	const PARAMS_TYPE_NUMERIC = 1;
+	
+	const PARAMS = [
+		"name" => [Model::PARAMS_TYPE_STRING, "name", true],
+		"modeltype" => [Model::PARAMS_TYPE_STRING, "modelType", true],
+		"permgroup" => [Model::PARAMS_TYPE_STRING, "perm", true],
+	];
 
+	/** @var string  */
 	private $name = "";
-	private $modelType = "generic";
+	/** @var string */
+	private $modelType = "";
+	/** @var array|null  */
 	private $particleType = null;
-	private $perm;
-	protected $isInvalid = false;
+	/** @var string */
+	private $perm = "";
 	
 	/** @var array */
 	private $runtimeData = [];
+	
+	/** @var bool */
+	protected $isInvalid = false;
 
 	public function __construct(array $data, ?string $name = null, ?string $forcedID = null){
-		if(is_string($msg = self::checkIntegrity($data, $name))){
+		if(is_array($result = $this->processOptions($data, self::PARAMS))){
+			foreach($result as $optionVarName => $optionData){
+				$this->$optionVarName = $optionData;
+			}
+		}elseif(is_string($result)){
 			Utils::critical("Model '".isset($data['name']) ? $data['name'] : $name."' could not be loaded: ".$msg."!");
 			$this->isInvalid = true;
 			return;
 		}
-		$this->name = $data['name'];
-		if(isset($data['modeltype'])){
-			if(is_string($data['modeltype'])){
-				if($forcedID !== null && $data['modeltype'] !== $forcedID){
-					$this->modelLoadFail("Model '".$this->name."' could not be loaded: Wrong modeltype for the subclass!");
-					$this->isInvalid = true;
-					return;
-				}
-				$this->modelType = $data['modeltype'];
-			}else{
-				$this->modelMessage("Key 'modeltype' exists, but is not string, ignoring.");
-			}
-		}else{
-			$this->modelMessage("Key 'modeltype' does not exist, using default.");
+		if($forcedID !== null && $this->modelType !== $forcedID){
+			$this->modelLoadFail("Model '".$this->name."' could not be loaded: Wrong modeltype for the subclass!");
+			$this->isInvalid = true;
+			return;
 		}
 		if(isset($data['particle'])){
 			$this->particleType = $this->parseParticle($data['particle'], "Attribute 'particle'");
@@ -51,10 +57,9 @@ class Model{
 				return;
 			}
 		}else{
-			$this->modelMessage("Key 'particle' does not exist, using default.");
+			$this->modelMessage("Key 'particle' does not exist, using default.", Utils::LOG_LVL_DEBUG);
 			$this->particleType = self::DEFAULT_PARTICLE_TYPE;
 		}
-		$this->perm = $data['permgroup'];
 	}
  
 	public function modelMessage(string $msg, int $logLevel = Utils::LOG_LVL_NOTICE){
@@ -65,6 +70,12 @@ class Model{
 		Utils::log("Model '".$this->name."' could not be loaded: ".$msg, $logLevel);
 	}
 	
+	/**
+	 * Gets a particleID by its constant name as defined in \pocketmine\level\particle\Particle
+	 * @param string $name
+	 *
+	 * @return int|null
+	 */
 	public static function getParticleIDbyName(string $name): ?int{
 		if(defined("\pocketmine\level\particle\Particle::".$name)){
 			return constant("\pocketmine\level\particle\Particle::".$name);
@@ -73,7 +84,13 @@ class Model{
 		}
 	}
 	
-	public function parseParticle($input, string $dataIdentifier): ?array{
+	/**
+	 * @param mixed  $input
+	 * @param string $dataIdentifier
+	 *
+	 * @return array|null
+	 */
+	public function parseParticle(mixed $input, string $dataIdentifier): ?array{
 		$finalParticle = [null, null];
 		if(is_int($input)){
 			$finalParticle[0] = $input;
@@ -142,36 +159,49 @@ class Model{
 	 * You may want to use this if you provide user entered data.
 	 *
 	 * @param array       $data    The data array to be checked
-	 * @param null|string $name    The name to be checked against (provide null if not applicable)
 	 * @param array       $options string $optionName => [string $optionName, ?string $optionVarName, bool $isRequired]
 	 *
      * @return array|string Returns array with [$optionVarName => $optionValue] on success and an string with error info
 	 *                      on failure.
 	 */
-	public static function processOptions(array $data, string $name, array $options){
+	public function processOptions(array $data, array $options){
+		$optionVars = [];
 		foreach($options as $optionName => $optionInfo){
+			if(!isset($data[$optionName])){
+				if($optionInfo[2]){
+					return "Required key '".$optionName."' does not exist!";
+				}else{
+					$this->modelMessage("Key '".$optionName."'' does not exist, using default.", Utils::LOG_LVL_DEBUG);
+					continue;
+				}
+			}
 			switch($optionInfo[0]){
-				case self::SETTINGS_TYPE_STRING:
-					if(!isset($data[$optionName])){
-						if($optionInfo[2]){
-							return "Required key '".$optionName."' not found.";
-						}
-					}
+				case self::PARAMS_TYPE_STRING:
+					$isValid = is_string($data[$optionName]);
+					$typeStr = "string";
+				break;
+				case self::PARAMS_TYPE_NUMERIC:
+					$isValid = is_numeric($data[$optionName]);
+					$typeStr = "numeric";
+				break;
+				default:
+					$isValid = false;
+					$typeStr = "unknown";
 				break;
 			}
-		}
-		
-		$stringKeys = ['permgroup', 'name'];
-		foreach($stringKeys as $stringKey){
-			if(!isset($data[$stringKey])) return "Required key '".$stringKey."' not found";
-			if(!is_string($data[$stringKey])) return "Key '".$stringKey."' is not string";
-		}
-		if($name !== null){
-			if($name !== $data['name']){
-				return "Expected '".$name."' got '".$data['name']."' Did you modify the name of an example? Expected name must be the same as name in data, or null";
+			if(!$isValid){
+				if($optionInfo[2]){
+					return "Required Key '".$optionName."'' exists, but is not ".$typeStr."!";
+				}else{
+					$this->modelMessage("Key '".$optionName."'' exists, but is not ".$typeStr.", ignoring.");
+					continue;
+				}
+			}
+			if($optionInfo[1] !== null){
+				$optionVars[$optionInfo[1]] = $data[$optionName];
 			}
 		}
-		return true;
+		return $optionVars;
 	}
 	
 	public function isInvalid(): bool{
