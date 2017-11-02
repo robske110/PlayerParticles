@@ -8,7 +8,6 @@ use pocketmine\plugin\PluginBase;
 /**
   * @author robske_110
   * @version 0.9.0-php7
-  * @todo use getLangByFriendlyName, handle lang cannot be found
   */
 class Translator{
 	private $translationFile;
