@@ -90,7 +90,7 @@ class Model{
 	 *
 	 * @return array|null
 	 */
-	public function parseParticle(mixed $input, string $dataIdentifier): ?array{
+	public function parseParticle($input, string $dataIdentifier): ?array{
 		$finalParticle = [null, null];
 		if(is_int($input)){
 			$finalParticle[0] = $input;
