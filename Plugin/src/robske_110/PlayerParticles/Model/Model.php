@@ -46,7 +46,7 @@ class Model{
 			return;
 		}
 		if($forcedID !== null && $this->modelType !== $forcedID){
-			$this->modelLoadFail("Model '".$this->name."' could not be loaded: Wrong modeltype for the subclass!");
+			$this->modelLoadFail("Wrong modeltype for the subclass!");
 			$this->isInvalid = true;
 			return;
 		}
@@ -169,9 +169,9 @@ class Model{
 		foreach($options as $optionName => $optionInfo){
 			if(!isset($data[$optionName])){
 				if($optionInfo[2]){
-					return "Required key '".$optionName."' does not exist!";
+					return "Required key '".$optionName."' does not exist";
 				}else{
-					$this->modelMessage("Key '".$optionName."'' does not exist, using default.", Utils::LOG_LVL_DEBUG);
+					$this->modelMessage("Key '".$optionName."' does not exist, using default.", Utils::LOG_LVL_DEBUG);
 					continue;
 				}
 			}
@@ -191,7 +191,7 @@ class Model{
 			}
 			if(!$isValid){
 				if($optionInfo[2]){
-					return "Required Key '".$optionName."'' exists, but is not ".$typeStr."!";
+					return "Required Key '".$optionName."'' exists, but is not ".$typeStr;
 				}else{
 					$this->modelMessage("Key '".$optionName."'' exists, but is not ".$typeStr.", ignoring.");
 					continue;

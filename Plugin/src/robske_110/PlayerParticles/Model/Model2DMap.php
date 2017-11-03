@@ -11,9 +11,9 @@ class Model2DMap extends Model{
 
 	const PARAMS = [
 		"model" => [Model::PARAMS_TYPE_STRING, null, true],
-		"centermode" => [Model::PARAMS_TYPE_STRING, null, false],
-		"spacing" => [Model::PARAMS_TYPE_NUMERIC, "spacing", true],
-		"backwardsoffset" => [Model::PARAMS_TYPE_NUMERIC, "backwardsOffset", true],
+		"centermode" => [Model::PARAMS_TYPE_STRING, null, true],
+		"spacing" => [Model::PARAMS_TYPE_NUMERIC, "spacing", false],
+		"backwardsoffset" => [Model::PARAMS_TYPE_NUMERIC, "backwardsOffset", false],
 	];
 
 	/** @var array  */
@@ -31,7 +31,7 @@ class Model2DMap extends Model{
 	private $particleMap = [];
 
 	public function __construct(array $data, ?string $name = null){
-		parent::__construct($data, $name, $this->getModelType());
+		parent::__construct($data, $name, $this->getID());
 		if($this->isInvalid()){
 			return;
 		}
