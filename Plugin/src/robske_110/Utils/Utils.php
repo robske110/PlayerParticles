@@ -3,21 +3,19 @@
 namespace robske_110\Utils;
 
 use pocketmine\plugin\PluginBase;
-use pocketmine\Utils\MainLogger;
+use pocketmine\plugin\PluginLogger;
 
 /**
   * @author robske_110
-  * @version 0.8.0-php7
+  * @version 0.9.0-php7
   */
 abstract class Utils{
-    /** @var MainLogger */
+    /** @var PluginLogger */
     private static $logger;
     /** @var bool */
 	private static $debugEnabled;
     /** @var resource */
     private static $debugFile;
-    /** @var string */
-	private static $prefix;
     
 	const LOG_LVL_INFO = 0;
 	const LOG_LVL_NOTICE = 1;
@@ -30,13 +28,9 @@ abstract class Utils{
 	const DEBUG_LVL_NORMAL = 1;
 	const DEBUG_LVL_PRIOR = 2;
     
-	public static function init(PluginBase $main, bool $debugEnabled = false, string $prefix = ""){
+	public static function init(PluginBase $main, bool $debugEnabled = false){
 		self::$logger = $main->getLogger();
 		self::$debugEnabled = $debugEnabled;
-		if($prefix !== ""){
-			$prefix .= " ";
-		}
-		self::$prefix = $prefix;
 		if($debugEnabled){
 		    @mkdir($main->getDataFolder()."/Debug");
 			$filename = $main->getDataFolder()."/Debug/Debug".date("d:m:Y_H-i-s", time()).".txt";

@@ -2,8 +2,6 @@
 
 namespace robske_110\PlayerParticles\Model;
 
-use robske_110\Utils\Utils;
-
 class Model2DMap extends Model{
 
 	const CENTER_STATIC = 0;
@@ -68,22 +66,19 @@ class Model2DMap extends Model{
 		}
 		if(isset($data['particles'])){
 			if(is_array($data['particles'])){
-				$fail = false;
+				$failmsg = null;
 				foreach($data['particles'] as $letter => $particle){
 					if(strlen($letter) > 1){
 						$failmsg = "Identifier is supposed to be one char long.";
-						$fail = true;
 					}
 					$letter = strtoupper($letter);
 					if($letter === "X"){
 						$failmsg = "Don't use SPACE (X) as an identifier in ParticleMap";
-						$fail = true;
 					}
 					if(isset($this->particleMap[$letter])){
 						$failmsg = "You cannot use an Identifier twice in ParticleMap";
-						$fail = true;
 					}
-					if($fail){
+					if($failmsg !== null){
 						$this->modelLoadFail("ParticleMap could not be loaded: ".$failmsg);
 						$this->particleMap = [];
 						break;

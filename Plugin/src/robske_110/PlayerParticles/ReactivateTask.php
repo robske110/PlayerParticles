@@ -65,7 +65,7 @@ class ReactivateTask extends PluginTask{
 		$needRecalculate = false;
 		foreach($this->reactivateJobs as $index => $data){
 			if($data[1] <= $currentTick){
-				$data[0]->activate();
+				$data[0]->activate(false);
 				unset($this->reactivateJobs[$index]);
 				if($data[2] > $this->minTickDelay){
 					$needRecalculate = true;

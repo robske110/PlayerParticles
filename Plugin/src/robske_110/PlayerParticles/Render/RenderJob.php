@@ -7,18 +7,25 @@ use robske_110\PlayerParticles\Model\Model;
 use pocketmine\level\Location;
 
 class RenderJob{
+	private static $id = 0;
+	
 	/** @var Location */
 	private $pos;
 	/** @var Model */
 	private $model;
+	/** @var int */
+	private $uid;
 	/** @var bool */
 	private $active = true;
+	/** @var bool */
+	private $externalDeactivated = false;
 	/** @var bool */
 	private $isGarbage = false;
 	
 	public function __construct(Location $pos, Model $model){
 		$this->pos = $pos;
 		$this->model = $model;
+		$this->uid = self::$id++;
 	}
 
     /**
@@ -42,11 +49,31 @@ class RenderJob{
 		return $this->pos;
 	}
 	
-	public function activate(){
+	/**
+	 * @return int Unique ID for a RenderJob
+	 */
+	public function getID(): int{
+		return $this->uid;
+	}
+	
+	/**
+	 * @param bool $external Never supply false, this is internal!
+	 */
+	public function activate(bool $external = true){
+		if($this->externalDeactivated && (!$external)){
+			return;
+		}
+		$this->externalDeactivated = false;
 		$this->active = true;
 	}
 	
-	public function deactivate(){
+	/**
+	 * @param bool $external Never supply false, this is internal!
+	 */
+	public function deactivate(bool $external = true){
+		if($external){
+			$this->externalDeactivated = $external;
+		}
 		$this->active = false;
 	}
 
@@ -62,6 +89,9 @@ class RenderJob{
 		$this->isGarbage = true;
 	}
 	
+	/**
+	 * @return bool isGarbage
+	 */
 	public function isGarbage(): bool{
 		return $this->isGarbage;
 	}

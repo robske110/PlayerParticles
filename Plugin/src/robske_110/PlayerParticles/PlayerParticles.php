@@ -35,7 +35,7 @@ class PlayerParticles extends PluginBase{
 	 * x.C.x Feature additions, usually not breaking. (Use this if you require certain new features)
 	 * x.x.C BugFixes on API related functions, not breaking.
 	 */
-	const API_VERSION = "1.0.0-InDev";
+	const API_VERSION = "0.0.0-InDev";
 	
 	/** @var Model[] */
 	private $models = [];
@@ -77,7 +77,11 @@ class PlayerParticles extends PluginBase{
 			$this->listener->onJoin(new PlayerLoginEvent($player, ""));
 		}
 	}
-    
+
+	public function onDisable(){
+		Utils::close();
+	}
+	
 	/**
 	 * For extension plugins to test if they are compatible with the version
 	 * of PP installed.

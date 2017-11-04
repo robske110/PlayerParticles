@@ -28,6 +28,8 @@ class RenderManager extends PluginTask{
 		foreach($this->renderJobs as $index => $renderJob){
 			if($renderJob->isGarbage()){
 				unset($this->renderJobs[$index]);
+				$this->renderJobs = array_values($this->renderJobs);
+				$this->main->getPlayerManager()->remRenderJob($renderJob);
 			}
 			if($renderJob->isActive()){
 				$location = $renderJob->getLocation();

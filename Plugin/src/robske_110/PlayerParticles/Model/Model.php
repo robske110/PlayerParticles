@@ -41,7 +41,7 @@ class Model{
 				$this->$optionVarName = $optionData;
 			}
 		}elseif(is_string($result)){
-			Utils::critical("Model '".isset($data['name']) ? $data['name'] : $name."' could not be loaded: ".$msg."!");
+			Utils::critical("Model '".isset($data['name']) ? $data['name'] : $name."' could not be loaded: ".$result."!");
 			$this->isInvalid = true;
 			return;
 		}
@@ -236,7 +236,7 @@ class Model{
 		return null;
 	}
 	
-	public function setRuntimeData(string $key, mixed $data){
+	public function setRuntimeData(string $key, $data){
 		$this->runtimeData[$key] = $data;
 	}
 	
