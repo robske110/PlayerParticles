@@ -38,7 +38,7 @@ class PlayerManager{
 	 * @return bool Success
 	 */
 	public function hideRenderJobs(int $playerID, ?int $coolDown = null): bool{
-		if(!isset($this->players[$playerID])){
+		if(!$this->hideDuringMovement || !isset($this->players[$playerID])){
 			return false;
 		}
 		foreach($this->players[$playerID] as $renderJob){

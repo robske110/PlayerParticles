@@ -60,7 +60,7 @@ class RenderJob{
 	 * @param bool $external Never supply false, this is internal!
 	 */
 	public function activate(bool $external = true){
-		if($this->externalDeactivated && (!$external)){
+		if($this->externalDeactivated && !$external){
 			return;
 		}
 		$this->externalDeactivated = false;
